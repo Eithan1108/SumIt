@@ -11,7 +11,8 @@ export const currentUser = {
     summariesCount: 42,
     totalLikes: 14223,
     totalViews: 500981,
-    rate: 4.8
+    rate: 4.8,
+    status: "new"
   };
   
   // Summaries data

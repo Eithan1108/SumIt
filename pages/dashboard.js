@@ -1,20 +1,11 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  User,
-  Plus,
-  Star,
-  TrendingUp,
-  Clock,
-  Users,
-  Heart,
-  Bookmark,
-} from "lucide-react";
+import { Plus } from "lucide-react";
 import Header from "../components/Theme/Header";
 import Footer from "../components/Theme/Footer";
 import { summaries, communities, repositories, currentUser } from "@/lib/mockData";
@@ -22,6 +13,8 @@ import { SummaryCard } from "../components/Cards/SummaryCard";
 import { CommunityCard } from "../components/Cards/CommunityCard";
 import { RepositoryCard } from "../components/Cards/RepositoryCard";
 import UserStats from "../components/Theme/UserStats"
+import OnboardingTour from "../pages/OnboardingTour";
+import AddSummeryPageImage from "../public/Images/AddSummeryPage.png"
 
 export default function Dashboard() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -32,6 +25,7 @@ export default function Dashboard() {
   });
   const router = useRouter();
   const [activeTab, setActiveTab] = useState("recent");
+  const [isNewUser, setIsNewUser] = useState(true);
   
 
   const popularCommunities = communities.filter(
@@ -40,6 +34,11 @@ export default function Dashboard() {
   const myCommunities = communities.filter((community) => community.role);
   const allSummaries = summaries;
   const popularRepositories = repositories.filter((repo) => repo.stars > 96);
+
+  useEffect(() => {
+    const hasCompletedOnboarding = (currentUser.status == "new")
+    setIsNewUser(hasCompletedOnboarding);
+  }, []);
 
   const handleSearch = (term) => {
     setSearchTerm(term);
@@ -96,6 +95,46 @@ export default function Dashboard() {
     });
   };
 
+  const onboardingSteps = [
+    {
+      title: "Welcome to SummaryShare",
+      content: "Let's take a quick tour to help you get started with our platform. SummaryShare is designed to help you create, share, and collaborate on summaries of various content.",
+      target: "body",
+      image: "/Images/LandPage.png",
+      actionLabel: "Learn More",
+      action: () => window.open("https://summaryshare.com/about", "_blank")
+    },
+    {
+      title: "Create Your First Summary",
+      content: "Click here to start creating your first summary. You can summarize articles, books, or any content you like. Our AI-powered tools will help you create concise and informative summaries.",
+      target: ".create-summary-button",
+      image: "/Images/AddSummeryPage.png"
+    },
+    {
+      title: "Track Your Progress",
+      content: "Check out your stats, including total summaries, views, and likes. Set goals and watch your progress over time.",
+      target: ".user-stats-card",
+      image: "/Images/StatComponnent.png"
+    },
+    {
+      title: "Serch for terms",
+      content: "Leveraging cutting-edge AI technology, we meticulously analyze your summaries to extract key terms and concepts. Our system then intelligently maps out the connections between these elements, providing you with comprehensive insights and valuable data to enhance your understanding and productivity.",
+      target: ".communities-card",
+      image: "/Images/SearchTerm2.png"
+    },
+    {
+      title: "Discover Repositories",
+      content: "Explore and contribute to popular repositories on various topics. Repositories are collections of summaries organized by theme or subject matter.",
+      target: ".repositories-card",
+      image: "/Images/repoPage.png"
+    }
+  ];
+
+  const handleOnboardingComplete = () => {
+    localStorage.setItem('hasCompletedOnboarding', 'true');
+    setIsNewUser(false);
+  };
+
   return (
     <div className="min-h-screen bg-orange-50">
       <Header onSearch={handleSearch}/>
@@ -103,7 +142,7 @@ export default function Dashboard() {
       <main className="container mx-auto px-4 py-8">
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-3xl font-bold text-orange-700">
-            Welcome back, User!
+            Welcome back, {currentUser.name}
           </h1>
           <Link href="/create-summary">
             <Button className="bg-orange-500 hover:bg-orange-600">
@@ -310,6 +349,10 @@ export default function Dashboard() {
         </div>
       </main>
       <Footer />
-    </div>
+      <OnboardingTour 
+        steps={onboardingSteps} 
+        onComplete={handleOnboardingComplete}
+        theme="light"
+      /></div>
   );
 }
