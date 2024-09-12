@@ -1,118 +1,138 @@
-'use client'
+"use client";
 
-import React, { useState, useEffect, useRef } from 'react'
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { X, ChevronLeft, ChevronRight, HelpCircle, CheckCircle } from "lucide-react"
-import Image from 'next/image'
+import React, { useState, useEffect, useRef } from "react";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  X,
+  ChevronLeft,
+  ChevronRight,
+  HelpCircle,
+  CheckCircle,
+  Compass,
+} from "lucide-react";
+import Image from "next/image";
 
-export default function OnboardingTour({ steps, onComplete, theme = 'light' }) {
-  const [currentStep, setCurrentStep] = useState(0)
-  const [isVisible, setIsVisible] = useState(false)
-  const [isMinimized, setIsMinimized] = useState(false)
-  const cardRef = useRef(null)
+export default function OnboardingTour({ steps, onComplete, theme = "light" }) {
+  const [currentStep, setCurrentStep] = useState(0);
+  const [isVisible, setIsVisible] = useState(false);
+  const [isMinimized, setIsMinimized] = useState(false);
+  const cardRef = useRef(null);
 
-  const totalPages = steps.length
+  const totalPages = steps.length;
 
   useEffect(() => {
     if (isVisible && !isMinimized) {
-      const targetElement = document.querySelector(steps[currentStep].target)
+      const targetElement = document.querySelector(steps[currentStep].target);
       if (targetElement) {
-        targetElement.scrollIntoView({ behavior: 'smooth', block: 'center' })
-        highlightElement(targetElement)
+        targetElement.scrollIntoView({ behavior: "smooth", block: "center" });
+        highlightElement(targetElement);
       }
     }
 
     return () => {
-      removeHighlight()
-    }
-  }, [currentStep, steps, isVisible, isMinimized])
+      removeHighlight();
+    };
+  }, [currentStep, steps, isVisible, isMinimized]);
 
   const highlightElement = (element) => {
-    element.style.boxShadow = '0 0 0 9999px rgba(0, 0, 0, 0.5)'
-    element.style.zIndex = '9998'
-    element.style.position = 'relative'
-  }
+    element.style.boxShadow = "0 0 0 9999px rgba(0, 0, 0, 0.5)";
+    element.style.zIndex = "9998";
+    element.style.position = "relative";
+  };
 
   const removeHighlight = () => {
-    const elements = document.querySelectorAll('*')
-    elements.forEach(el => {
-      el.style.boxShadow = ''
-      el.style.zIndex = ''
-      el.style.position = ''
-    })
-  }
+    const elements = document.querySelectorAll("*");
+    elements.forEach((el) => {
+      el.style.boxShadow = "";
+      el.style.zIndex = "";
+      el.style.position = "";
+    });
+  };
 
   const handleNext = () => {
     if (currentStep < steps.length - 1) {
-      setCurrentStep(currentStep + 1)
+      setCurrentStep(currentStep + 1);
     } else {
-      setIsVisible(false)
-      onComplete()
+      setIsVisible(false);
+      onComplete();
     }
-  }
+  };
 
   const handlePrevious = () => {
     if (currentStep > 0) {
-      setCurrentStep(currentStep - 1)
+      setCurrentStep(currentStep - 1);
     }
-  }
+  };
 
   const handleSkip = () => {
-    setIsVisible(false)
-    onComplete()
-  }
+    setIsVisible(false);
+    onComplete();
+  };
 
   const handleMinimize = () => {
-    setIsMinimized(!isMinimized)
-    removeHighlight()
-  }
+    setIsMinimized(!isMinimized);
+    removeHighlight();
+  };
 
   const handleRestart = () => {
-    setCurrentStep(0)
-    setIsMinimized(false)
-  }
+    setCurrentStep(0);
+    setIsMinimized(false);
+  };
 
   const handleStartTour = () => {
-    setIsVisible(true)
-    setIsMinimized(false)
-    setCurrentStep(0)
-  }
+    setIsVisible(true);
+    setIsMinimized(false);
+    setCurrentStep(0);
+  };
 
-  const progress = ((currentStep + 1) / totalPages) * 100
+  const progress = ((currentStep + 1) / totalPages) * 100;
 
-  const themeClasses = theme === 'dark' 
-    ? 'bg-gray-800 text-white' 
-    : 'bg-white text-gray-800'
+  const themeClasses =
+    theme === "dark" ? "bg-gray-800 text-white" : "bg-white text-gray-800";
 
   return (
     <>
-      <Button 
-        className="fixed bottom-4 right-4 z-50 bg-gradient-to-r from-orange-400 to-orange-600 text-white rounded-full w-auto h-auto px-4 py-3 flex items-center justify-center shadow-lg transition-all duration-300 ease-in-out transform hover:scale-105 hover:shadow-xl"
+      <Button
+        className="fixed bottom-4 right-4 z-50 bg-orange-500 text-white rounded-lg w-auto h-auto px-4 py-3 flex items-center justify-center shadow-lg transition-all duration-300 ease-in-out hover:bg-orange-600 group"
         onClick={handleStartTour}
       >
-        <HelpCircle className="h-5 w-5 mr-2" />
-        <span className="font-semibold">Tour</span>
+        <Compass className="h-4 w-4 mr-2 group-hover:animate-spin transition-all duration-300" />
+        <span className="font-semibold">Explore</span>
       </Button>
 
       {isVisible && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm transition-all duration-300 ease-in-out">
-          <div className={`${isMinimized ? 'w-12' : 'w-full max-w-3xl'} transition-all duration-300 ease-in-out`}>
+          <div
+            className={`${isMinimized ? "w-12" : "w-full max-w-3xl"} transition-all duration-300 ease-in-out`}
+          >
             {isMinimized ? (
-              <Button 
+              <Button
                 className="bg-orange-500 hover:bg-orange-600 text-white rounded-full w-12 h-12 flex items-center justify-center shadow-lg transition-all duration-300 ease-in-out transform hover:scale-110"
                 onClick={handleMinimize}
               >
                 <HelpCircle className="h-6 w-6" />
               </Button>
             ) : (
-              <Card className={`${themeClasses} shadow-2xl rounded-xl overflow-hidden`} ref={cardRef}>
+              <Card
+                className={`${themeClasses} shadow-2xl rounded-xl overflow-hidden`}
+                ref={cardRef}
+              >
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 bg-orange-500 text-white">
-                  <CardTitle className="text-xl font-bold">
-                    Onboarding Tour
-                  </CardTitle>
+                  <CardTitle className="text-xl font-bold">Web Explore</CardTitle>
                   <div className="flex space-x-2">
-                    <Button variant="ghost" size="sm" onClick={handleSkip} className="text-white hover:bg-orange-600">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleSkip}
+                      className="text-white hover:bg-orange-600"
+                    >
                       <X className="h-5 w-5" />
                     </Button>
                   </div>
@@ -126,7 +146,7 @@ export default function OnboardingTour({ steps, onComplete, theme = 'light' }) {
                   </p>
                   {steps[currentStep].image && (
                     <div className="relative w-full h-64 mb-4 rounded-lg overflow-hidden">
-                      <Image 
+                      <Image
                         src={steps[currentStep].image}
                         alt={steps[currentStep].title}
                         layout="fill"
@@ -184,5 +204,5 @@ export default function OnboardingTour({ steps, onComplete, theme = 'light' }) {
         </div>
       )}
     </>
-  )
+  );
 }

@@ -1,19 +1,24 @@
 'use client'
 
 import Link from 'next/link'
-import { useState, ChangeEvent } from 'react'
+import { useState, ChangeEvent, FormEvent } from 'react'
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
+import { Input as BaseInput } from "@/components/ui/input"
 import { BookOpen, Search, Bell, User } from "lucide-react"
 
 interface HeaderProps {
   onSearch: (searchTerm: string) => void;
 }
 
+// Custom Input component that accepts the props we need
+const Input = ({ ...props }: React.InputHTMLAttributes<HTMLInputElement>) => {
+  return <BaseInput {...props} />;
+};
+
 export default function Header({ onSearch }: HeaderProps) {
   const [searchTerm, setSearchTerm] = useState('')
 
-  const handleSearch = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSearch = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     onSearch(searchTerm)
   }

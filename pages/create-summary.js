@@ -49,7 +49,7 @@ export default function CreateSummary() {
           <div className="flex justify-between items-center">
             <Link href="/dashboard" className="flex items-center space-x-2">
               <BookOpen className="h-8 w-8 text-orange-500" />
-              <span className="text-2xl font-bold text-orange-700">SummaryShare</span>
+              <span className="text-2xl font-bold text-orange-700">SumIt</span>
             </Link>
 
             <nav className="flex items-center space-x-4">
