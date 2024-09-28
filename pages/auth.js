@@ -1,34 +1,93 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/router'
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { BookOpen, Mail, Lock, User } from "lucide-react"
+import { BookOpen, User, Mail } from "lucide-react"
 import Link from 'next/link'
+import { fetchUsers, createUser, findUserByUsername, isUsernameTaken } from '@/lib/db'
 
 export default function Auth() {
+  const mockApiUrl = 'http://localhost:5000/users'
+
   const router = useRouter()
   const [isLogin, setIsLogin] = useState(true)
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
   const [username, setUsername] = useState('')
+  const [name, setName] = useState('')
+  const [error, setError] = useState(null)
+  const [isLoading, setIsLoading] = useState(false)
+  const [users, setUsers] = useState([])
 
-  const handleSubmit = (e) => {
+  useEffect(() => {
+    const loadUsers = async () => {
+      setIsLoading(true)
+      try {
+        const fetchedUsers = await fetchUsers()
+        setUsers(fetchedUsers)
+      } catch (error) {
+        setError('Failed to fetch user data. Please try again later.')
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    loadUsers()
+  }, [])
+
+  const handleSubmit = async (e) => {
     e.preventDefault()
-    // Here you would typically handle the login or signup logic
-    console.log(isLogin ? 'Logging in' : 'Signing up', { email, password, username })
-    
-    // Simulate successful login/signup
-    if (isLogin) {
-      // Redirect to dashboard after successful login
-      router.push('/dashboard')
-    } else {
-      // For signup, you might want to show a success message or log the user in automatically
-      console.log('Signup successful')
-      router.push('/dashboard')
+    setError(null)
+    setIsLoading(true)
+  
+    try {
+      if (isLogin) {
+        // Handle login
+        const user = findUserByUsername(users, username)
+        if (user) {
+          console.log('Login successful')
+          router.push(`/dashboard?userId=${user.id}`)
+        } else {
+          setError('Invalid username. Please try again.')
+        }
+      } else {
+        // Handle signup
+        if (isUsernameTaken(users, username)) {
+          setError('Username already exists. Please choose another.')
+        } else {
+          console.log('Signup successful')
+          // Create a new user object
+          const newUser = {
+            name: name,
+            username: username,
+            avatar: "/placeholder.svg?height=100&width=100",
+            bio: "",
+            followers: 0,
+            following: 0,
+            summariesCount: 0,
+            totalLikes: 0,
+            totalViews: 0,
+            rate: 0,
+            status: "new",
+            id: Date.now().toString(),
+            likedSummaries: [],
+            savedSummaries: [],
+            likedRepositories: [],
+            savedRepositories: [],
+          }
+  
+          const createdUser = await createUser(newUser)
+          console.log('New user posted successfully')
+          router.push(`/dashboard?userId=${createdUser.id}`)
+
+        }
+      }
+    } catch (error) {
+      setError('An error occurred. Please try again.')
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -49,52 +108,49 @@ export default function Auth() {
           </CardDescription>
         </CardHeader>
         <CardContent>
+          {error && (
+            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
+              <strong className="font-bold">Error: </strong>
+              <span className="block sm:inline">{error}</span>
+            </div>
+          )}
           <form onSubmit={handleSubmit} className="space-y-4">
             {!isLogin && (
               <div className="space-y-2">
-                <Label htmlFor="username">Username</Label>
+                <Label htmlFor="name">Name</Label>
                 <div className="relative">
-                  <User className="absolute left-2 top-2.5 h-4 w-4 text-orange-500" />
+                  <Mail className="absolute left-2 top-2.5 h-4 w-4 text-orange-500" />
                   <Input
-                    id="username"
-                    placeholder="Your username"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
+                    id="name"
+                    placeholder="Your full name"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
                     className="pl-8"
+                    disabled={isLoading}
                   />
                 </div>
               </div>
             )}
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="username">Username</Label>
               <div className="relative">
-                <Mail className="absolute left-2 top-2.5 h-4 w-4 text-orange-500" />
+                <User className="absolute left-2 top-2.5 h-4 w-4 text-orange-500" />
                 <Input
-                  id="email"
-                  type="email"
-                  placeholder="your.email@example.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  id="username"
+                  placeholder="Your username"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
                   className="pl-8"
+                  disabled={isLoading}
                 />
               </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <div className="relative">
-                <Lock className="absolute left-2 top-2.5 h-4 w-4 text-orange-500" />
-                <Input
-                  id="password"
-                  type="password"
-                  placeholder="Your secure password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="pl-8"
-                />
-              </div>
-            </div>
-            <Button type="submit" className="w-full bg-orange-500 hover:bg-orange-600">
-              {isLogin ? 'Log In' : 'Sign Up'}
+            <Button 
+              type="submit" 
+              className="w-full bg-orange-500 hover:bg-orange-600"
+              disabled={isLoading}
+            >
+              {isLoading ? 'Processing...' : (isLogin ? 'Log In' : 'Sign Up')}
             </Button>
           </form>
         </CardContent>

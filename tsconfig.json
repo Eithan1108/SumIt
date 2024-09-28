@@ -19,6 +19,6 @@
         "@/*": ["./*"]
       }
     },
-    "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", "components/ui/input.js", "pages/repository/[id].js", "pages/summary/[id].js"],
+    "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", "components/ui/input.js", "pages/repository/[id].js", "pages/summary/[id].js", "pages/repository/edit_repository/[id].tsx"],
     "exclude": ["node_modules"]
   }

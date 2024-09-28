@@ -1,26 +1,25 @@
 import React from 'react'
 import { Card, CardContent } from "@/components/ui/card"
-import { Clock, TrendingUp, Star, Heart, Bookmark } from "lucide-react"
+import { Clock, TrendingUp, Star, Bookmark } from "lucide-react"
+
+interface Summary {
+  id: string;
+  title: string;
+  description: string;
+  dateCreated?: string;
+  views: number;
+  likes: number;
+}
 
 interface SummaryCardProps {
-  summary: {
-    id: string
-    title: string
-    description: string // Added description to the summary interface
-    dateCreated?: string
-    views: number
-    likes: number
-  }
-  onClick: (summary: any) => void
-  showBookmark?: boolean
+  summary: Summary;
+  onClick: () => void;
+  showBookmark?: boolean;
 }
 
 export function SummaryCard({ summary, onClick, showBookmark = false }: SummaryCardProps) {
   return (
-    <Card
-      className="mb-4 cursor-pointer hover:bg-orange-100"
-      onClick={() => onClick(summary)}
-    >
+    <Card className="mb-4 cursor-pointer hover:bg-orange-100" onClick={onClick}>
       <CardContent className="p-4">
         <h3 className="text-lg font-semibold text-orange-700 mb-2">
           {summary.title}

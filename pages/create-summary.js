@@ -1,17 +1,28 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { AlertCircle, Bell, User, BookOpen, ChevronRight, Folder, Upload, Plus, X } from "lucide-react"
+import { AlertCircle, Bell, User, BookOpen, ChevronRight, Folder, Plus, X } from "lucide-react"
 import Link from 'next/link'
 import Footer from "../components/Theme/Footer"
-import { repositories } from '@/lib/mockData'
+import { addSummary, fetchUserById, fetchUserRepositories } from '@/lib/db'
 
-
+const Toast = ({ message, type, onClose }) => (
+  <div className={`fixed bottom-4 right-4 p-4 rounded-md shadow-md ${type === 'error' ? 'bg-red-500' : 'bg-green-500'} text-white`}>
+    <div className="flex justify-between items-center">
+      <p>{message}</p>
+      <button onClick={onClose} className="ml-4 text-white hover:text-gray-200">
+        <X size={16} />
+      </button>
+    </div>
+  </div>
+)
 
 export default function CreateSummary() {
+  const router = useRouter()
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [isPrivate, setIsPrivate] = useState(false)
@@ -20,25 +31,87 @@ export default function CreateSummary() {
   const [isLocationPickerOpen, setIsLocationPickerOpen] = useState(false)
   const [newFolderName, setNewFolderName] = useState('')
   const [selectedRepo, setSelectedRepo] = useState(null)
+  const [content, setContent] = useState('')
+  const [user, setUser] = useState(null)
+  const [userRepositories, setUserRepositories] = useState([])
+  const [toast, setToast] = useState(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const handleSubmit = (e) => {
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const urlParams = new URLSearchParams(window.location.search);
+        const userId = urlParams.get("userId");
+        if (userId) {
+          const fetchedUser = await fetchUserById(userId);
+          setUser(fetchedUser);
+          const repos = await fetchUserRepositories(userId);
+          setUserRepositories(repos);
+        }
+      } catch (error) {
+        console.error('Error fetching user data:', error);
+        setToast({ message: 'Failed to load user data. Please try again.', type: 'error' });
+      }
+    };
+    fetchData();
+  }, []);
+
+  const handleSubmit = async (e) => {
     e.preventDefault()
-    // Handle form submission here
-    console.log({ title, description, isPrivate, subject, location })
+    setIsSubmitting(true)
+    try {
+      if (!user) {
+        throw new Error('User not found');
+      }
+      const [repoId, folderId] = location.split('/');
+      const newSummary = {
+        title,
+        description,
+        content,
+        author: user.name,
+        owner: user.id,
+        tags: [subject],
+        isPrivate,
+        neuronGraph: {}
+      }
+      console.log("repo", repoId, "folder", folderId)
+      const addedSummary = await addSummary(newSummary, repoId, folderId)
+
+      console.log('Summary added successfully:', addedSummary)
+      setToast({ message: 'Summary created successfully!', type: 'success' });
+      router.push(`/dashboard?userId=${user.id}`)
+    } catch (error) {
+      console.error('Error creating summary:', error)
+      setToast({ message: error.message || 'Failed to create summary. Please try again.', type: 'error' });
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   const handleLocationSelect = (repoId, folderId) => {
-    const repo = repositories.find(r => r.id === repoId)
-    const folder = repo.rootFolder.items.find(f => f.id === folderId)
-    setLocation(`${repo.name}/${folder.name}`)
+    const repo = userRepositories.find(r => r.id === repoId)
+    const folder = folderId ? repo.rootFolder.items.find(f => f.id === folderId) : null
+    setLocation(`${repoId}${folderId ? `/${folderId}` : ''}`)
+    setSelectedRepo(repo)
     setIsLocationPickerOpen(false)
   }
 
-  const handleCreateFolder = () => {
+  const handleCreateFolder = async () => {
     if (selectedRepo && newFolderName) {
-      // In a real app, you would update the backend here
-      console.log(`Creating new folder "${newFolderName}" in repo "${selectedRepo.name}"`)
-      setNewFolderName('')
+      try {
+        // Note: This function needs to be implemented to handle folder creation
+        const updatedRepo = await createNewFolder(selectedRepo.id, newFolderName)
+        setUserRepositories(prevRepos => 
+          prevRepos.map(repo => 
+            repo.id === updatedRepo.id ? updatedRepo : repo
+          )
+        )
+        setNewFolderName('')
+        setToast({ message: 'Folder created successfully!', type: 'success' });
+      } catch (error) {
+        console.error('Error creating new folder:', error)
+        setToast({ message: 'Failed to create folder. Please try again.', type: 'error' });
+      }
     }
   }
 
@@ -47,7 +120,7 @@ export default function CreateSummary() {
       <header className="bg-white shadow-sm">
         <div className="container mx-auto px-4 py-4">
           <div className="flex justify-between items-center">
-            <Link href="/dashboard" className="flex items-center space-x-2">
+            <Link href={`/dashboard?userId=${user?.id}`} className="flex items-center space-x-2">
               <BookOpen className="h-8 w-8 text-orange-500" />
               <span className="text-2xl font-bold text-orange-700">SumIt</span>
             </Link>
@@ -59,7 +132,7 @@ export default function CreateSummary() {
               <Button variant="ghost" size="icon">
                 <Bell className="h-5 w-5 text-orange-600" />
               </Button>
-              <Link href="/profile">
+              <Link href={`/profile?userId=${user?.id}`}>
                 <Button variant="ghost" size="icon">
                   <User className="h-5 w-5 text-orange-600" />
                 </Button>
@@ -95,6 +168,18 @@ export default function CreateSummary() {
             />
           </div>
           <div>
+            <Label htmlFor="content" className="text-lg font-medium text-orange-700">Content</Label>
+            <textarea 
+              id="content" 
+              value={content} 
+              onChange={(e) => setContent(e.target.value)} 
+              placeholder="Enter summary content" 
+              className="mt-1 w-full border-orange-300 focus:border-orange-500 focus:ring-orange-500 rounded-md p-2"
+              rows={8}
+              required
+            />
+          </div>
+          <div>
             <Label htmlFor="subject" className="text-lg font-medium text-orange-700">Subject</Label>
             <select
               id="subject"
@@ -127,28 +212,16 @@ export default function CreateSummary() {
                 <div className="mt-2 text-sm text-orange-600">
                   <div className="flex items-center">
                     <Folder className="mr-1 h-4 w-4" />
-                    <span>My Summaries</span>
-                    <ChevronRight className="mx-1 h-4 w-4" />
-                    <span>{location}</span>
+                    <span>{selectedRepo?.name || 'My Summaries'}</span>
+                    {location.split('/')[1] && (
+                      <>
+                        <ChevronRight className="mx-1 h-4 w-4" />
+                        <span>{selectedRepo?.rootFolder.items.find(f => f.id === location.split('/')[1])?.name || ''}</span>
+                      </>
+                    )}
                   </div>
                 </div>
               )}
-            </div>
-          </div>
-          <div>
-            <Label htmlFor="file" className="text-lg font-medium text-orange-700">Upload summary file</Label>
-            <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-orange-300 border-dashed rounded-md">
-              <div className="space-y-1 text-center">
-                <Upload className="mx-auto h-12 w-12 text-orange-400" />
-                <div className="flex text-sm text-orange-600">
-                  <label htmlFor="file-upload" className="relative cursor-pointer rounded-md font-medium text-orange-600 hover:text-orange-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-orange-500">
-                    <span>Upload a file</span>
-                    <input id="file-upload" name="file-upload" type="file" className="sr-only" />
-                  </label>
-                  <p className="pl-1">or drag and drop</p>
-                </div>
-                <p className="text-xs text-orange-500">PDF, DOC, TXT up to 10MB</p>
-              </div>
             </div>
           </div>
           <div className="flex items-center space-x-2">
@@ -173,8 +246,8 @@ export default function CreateSummary() {
               </div>
             </div>
           </div>
-          <Button type="submit" className="w-full bg-orange-500 hover:bg-orange-600 text-white">
-            Create summary
+          <Button type="submit" className="w-full bg-orange-500 hover:bg-orange-600 text-white" disabled={isSubmitting}>
+            {isSubmitting ? 'Creating...' : 'Create summary'}
           </Button>
         </form>
       </main>
@@ -189,48 +262,65 @@ export default function CreateSummary() {
               </Button>
             </div>
             <div className="space-y-4 max-h-96 overflow-y-auto">
-            {repositories.map(repo => (
-  <div key={repo.id} className="border-b border-orange-200 pb-4">
-    <h3 className="font-semibold text-orange-600 mb-2">{repo.name}</h3>
-    <ul className="space-y-2">
-      {repo.rootFolder.items.map(folder => (
-        <li key={folder.id}>
-          <Button
-            variant="ghost"
-            className="w-full justify-start text-orange-700 hover:bg-orange-100"
-            onClick={() => handleLocationSelect(repo.id, folder.id)}
-          >
-            <Folder className="mr-2 h-4 w-4" />
-            {folder.name}
-          </Button>
-        </li>
-      ))}
-    </ul>
-                  {selectedRepo && selectedRepo.id === repo.id && (
-                    <div className="mt-2 flex items-center">
-                      <Input
-                        value={newFolderName}
-                        onChange={(e) => setNewFolderName(e.target.value)}
-                        placeholder="New folder name"
-                        className="mr-2 border-orange-300 focus:border-orange-500 focus:ring-orange-500"
-                      />
-                      <Button onClick={handleCreateFolder} className="bg-orange-500 hover:bg-orange-600 text-white">
-                        <Plus className="h-4 w-4" />
+            {userRepositories.map(repo => (
+              <div key={repo.id} className="border-b border-orange-200 pb-4">
+                <h3 className="font-semibold text-orange-600 mb-2">{repo.name}</h3>
+                <ul className="space-y-2">
+                  <li>
+                    <Button
+                      variant="ghost"
+                      className="w-full justify-start text-orange-700 hover:bg-orange-100"
+                      onClick={() => handleLocationSelect(repo.id)}
+                    >
+                      <Folder className="mr-2 h-4 w-4" />
+                      Root
+                    </Button>
+                  </li>
+                  {repo.rootFolder.items.map(folder => (
+                    <li key={folder.id}>
+                      <Button
+                        variant="ghost"
+                        className="w-full justify-start text-orange-700 hover:bg-orange-100"
+                        onClick={() => handleLocationSelect(repo.id, folder.id)}
+                      >
+                        <Folder className="mr-2 h-4 w-4" />
+                        {folder.name}
                       </Button>
-                    </div>
-                  )}
-                  <Button
-                    variant="ghost"
-                    className="mt-2 text-orange-600 hover:text-orange-700"
-                    onClick={() => setSelectedRepo(selectedRepo?.id === repo.id ? null : repo)}
-                  >
-                    {selectedRepo?.id === repo.id ? 'Cancel' : 'Create Folder'}
-                  </Button>
-                </div>
-              ))}
+                    </li>
+                  ))}
+                </ul>
+                {selectedRepo && selectedRepo.id === repo.id && (
+                  <div className="mt-2 flex items-center">
+                    <Input
+                      value={newFolderName}
+                      onChange={(e) => setNewFolderName(e.target.value)}
+                      placeholder="New folder name"
+                      className="mr-2 border-orange-300 focus:border-orange-500 focus:ring-orange-500"
+                    />
+                    <Button onClick={handleCreateFolder} className="bg-orange-500 hover:bg-orange-600 text-white">
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                  </div>
+                )}
+                <Button
+                  variant="ghost"
+                  className="mt-2 text-orange-600 hover:text-orange-700"
+                  onClick={() => setSelectedRepo(selectedRepo?.id === repo.id ? null : repo)}
+                >
+                  {selectedRepo?.id === repo.id ? 'Cancel' : 'Create Folder'}
+                </Button>
+              </div>
+            ))}
             </div>
           </div>
         </div>
+      )}
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
       )}
       <Footer />
     </div>

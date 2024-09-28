@@ -1,4 +1,5 @@
 "use client";
+
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -8,18 +9,19 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus } from "lucide-react";
 import Header from "../components/Theme/Header";
 import Footer from "../components/Theme/Footer";
-import {
-  summaries,
-  communities,
-  repositories,
-  currentUser,
-} from "@/lib/mockData";
+import { communities } from "@/lib/mockData";
 import { SummaryCard } from "../components/Cards/SummaryCard";
 import { CommunityCard } from "../components/Cards/CommunityCard";
 import { RepositoryCard } from "../components/Cards/RepositoryCard";
 import UserStats from "../components/Theme/UserStats";
 import OnboardingTour from "../pages/OnboardingTour";
-import AddSummeryPageImage from "../public/Images/AddSummeryPage.png";
+import {
+  fetchUserById,
+  fetchSummaries,
+  fetchLikedSummaries,
+  fetchSavedSummaries,
+  fetchRepositories,
+} from "@/lib/db";
 
 export default function Dashboard() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -31,17 +33,48 @@ export default function Dashboard() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState("recent");
   const [isNewUser, setIsNewUser] = useState(true);
+  const [user, setUser] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [allSummaries, setAllSummaries] = useState([]);
+  const [likedSummaries, setLikedSummaries] = useState([]);
+  const [savedSummaries, setSavedSummaries] = useState([]);
+  const [repositories, setRepositories] = useState([]);
 
   const popularCommunities = communities.filter(
     (community) => community.members > 4000,
   );
   const myCommunities = communities.filter((community) => community.role);
-  const allSummaries = summaries;
-  const popularRepositories = repositories.filter((repo) => repo.stars > 96);
 
   useEffect(() => {
-    const hasCompletedOnboarding = currentUser.status == "new";
-    setIsNewUser(hasCompletedOnboarding);
+    const fetchData = async () => {
+      setIsLoading(true);
+      try {
+        const urlParams = new URLSearchParams(window.location.search);
+        const userId = urlParams.get("userId");
+        const [foundUser, summariesData, likedData, savedData, reposData] =
+          await Promise.all([
+            userId ? fetchUserById(userId) : null,
+            fetchSummaries(),
+            userId ? fetchLikedSummaries(userId) : [],
+            userId ? fetchSavedSummaries(userId) : [],
+            fetchRepositories(),
+          ]);
+        if (userId) {
+          setUser(foundUser);
+          setIsNewUser(foundUser?.status === "new");
+          setLikedSummaries(likedData);
+          setSavedSummaries(savedData);
+        }
+        setAllSummaries(summariesData);
+        setRepositories(reposData);
+      } catch (error) {
+        console.error("Failed to fetch data:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchData();
   }, []);
 
   const handleSearch = (term) => {
@@ -78,24 +111,22 @@ export default function Dashboard() {
     searchResults.repositories.length > 0 ||
     searchResults.communities.length > 0;
 
-  const navigateToSummary = (summary) => {
-    // router.push({
-    //   pathname: `/summary/${summary.id}`,
-    //   query: { summary: JSON.stringify(summary) },
-    // });
-    router.push({
-      pathname: `/summary/${summary.id}`,
-      query: {
-        summary: JSON.stringify(summary),
-      },
-    });
-  };
+    const navigateToSummary = (summary) => {
+      if (user) {
+        router.push(`/summary/${summary.id}?userId=${user.id}`);
+      }
+    };
 
-  const navigateToRepository = (repo) => {
-    // router.push(`/repository/${id}`);
+    const navigateToRepository = (repo) => {
+      if (user) {
+        router.push(`/repository/${repo.id}?userId=${user.id}`);
+      }
+    };
+
+  const navigateToCommunity = (community) => {
     router.push({
-      pathname: `/repository/${repo.id}`,
-      query: { repo: JSON.stringify(repo) },
+      pathname: `/community/${community.id}`,
+      query: { community: JSON.stringify(community) },
     });
   };
 
@@ -124,7 +155,7 @@ export default function Dashboard() {
       image: "/Images/StatComponnent.png",
     },
     {
-      title: "Serch for terms",
+      title: "Search for terms",
       content:
         "Leveraging cutting-edge AI technology, we meticulously analyze your summaries to extract key terms and concepts. Our system then intelligently maps out the connections between these elements, providing you with comprehensive insights and valuable data to enhance your understanding and productivity.",
       target: ".communities-card",
@@ -146,15 +177,15 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-orange-50">
-      <Header onSearch={handleSearch} />
+      <Header onSearch={handleSearch} userId={user?.id} />
 
       <main className="container mx-auto px-4 py-8">
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-3xl font-bold text-orange-700">
-            Welcome back, {currentUser.name}
+            Welcome back, {user ? user.name : "User"}
           </h1>
-          <Link href="/create-summary">
-            <Button className="bg-orange-500 hover:bg-orange-600">
+          <Link href={`/create-summary?userId=${user?.id}`}>
+            <Button className="bg-orange-500 hover:bg-orange-600 create-summary-button">
               <Plus className="mr-2 h-4 w-4" /> Create New Summary
             </Button>
           </Link>
@@ -241,13 +272,13 @@ export default function Dashboard() {
                         (a, b) =>
                           new Date(b.dateCreated).getTime() -
                           new Date(a.dateCreated).getTime(),
-                      ) // Sort by most recent date
-                      .slice(0, 3) // Get the 3 most recent summaries
+                      )
+                      .slice(0, 3)
                       .map((summary) => (
                         <SummaryCard
                           key={summary.id}
                           summary={summary}
-                          onClick={() => navigateToSummary(summary)} // Pass the summary to navigate
+                          onClick={() => navigateToSummary(summary)}
                         />
                       ))
                   ) : (
@@ -258,13 +289,13 @@ export default function Dashboard() {
                 <TabsContent value="popular">
                   {allSummaries && allSummaries.length > 0 ? (
                     allSummaries
-                      .sort((a, b) => b.views - a.views) // Sort by views (most to least)
-                      .slice(0, 3) // Take the top 3 summaries based on views
+                      .sort((a, b) => b.views - a.views)
+                      .slice(0, 3)
                       .map((summary) => (
                         <SummaryCard
                           key={summary.id}
                           summary={summary}
-                          onClick={() => navigateToSummary(summary)} // Pass the summary to navigate
+                          onClick={() => navigateToSummary(summary)}
                         />
                       ))
                   ) : (
@@ -273,33 +304,30 @@ export default function Dashboard() {
                 </TabsContent>
 
                 <TabsContent value="liked">
-                  {allSummaries && allSummaries.length > 0 ? (
-                    allSummaries
-                      .sort((a, b) => b.likes - a.likes) // Sort by likes (most to least)
-                      .slice(0, 3) // Take the top 3 summaries based on likes
-                      .map((summary) => (
-                        <SummaryCard
-                          key={summary.id}
-                          summary={summary}
-                          onClick={() => navigateToSummary(summary)} // Pass the summary to navigate
-                        />
-                      ))
+                  {isLoading ? (
+                    <p>Loading liked summaries...</p>
+                  ) : likedSummaries && likedSummaries.length > 0 ? (
+                    likedSummaries.map((summary) => (
+                      <SummaryCard
+                        key={summary.id}
+                        summary={summary}
+                        onClick={() => navigateToSummary(summary)}
+                      />
+                    ))
                   ) : (
                     <p>No liked summaries available.</p>
                   )}
                 </TabsContent>
 
                 <TabsContent value="saved">
-                  {allSummaries && allSummaries.length > 0 ? (
-                    allSummaries
-                      .slice(0, 3)
-                      .map((summary) => (
-                        <SummaryCard
-                          key={summary.id}
-                          summary={summary}
-                          onClick={navigateToSummary}
-                        />
-                      ))
+                  {savedSummaries && savedSummaries.length > 0 ? (
+                    savedSummaries.map((summary) => (
+                      <SummaryCard
+                        key={summary.id}
+                        summary={summary}
+                        onClick={() => navigateToSummary(summary)}
+                      />
+                    ))
                   ) : (
                     <p>No saved summaries available.</p>
                   )}
@@ -307,7 +335,21 @@ export default function Dashboard() {
               </Tabs>
             </CardContent>
           </Card>
-          <UserStats user={currentUser} />
+          {isLoading ? (
+            <Card>
+              <CardContent className="p-6">
+                <p>Loading user stats...</p>
+              </CardContent>
+            </Card>
+          ) : user ? (
+            <UserStats user={user} />
+          ) : (
+            <Card>
+              <CardContent className="p-6">
+                <p>User stats not available</p>
+              </CardContent>
+            </Card>
+          )}
           <Card>
             <CardHeader>
               <CardTitle>Popular Communities</CardTitle>
@@ -347,16 +389,17 @@ export default function Dashboard() {
               <CardTitle>Popular Repositories</CardTitle>
             </CardHeader>
             <CardContent>
-              {false ? (
-                <p>Loading...</p>
-              ) : popularRepositories.length > 0 ? (
-                popularRepositories.map((repo) => (
-                  <RepositoryCard
-                    key={repo.id}
-                    repo={repo}
-                    onClick={navigateToRepository}
-                  />
-                ))
+              {repositories.length > 0 ? (
+                repositories
+                  .sort((a, b) => b.stars - a.stars)
+                  .slice(0, 3)
+                  .map((repo) => (
+                    <RepositoryCard
+                      key={repo.id}
+                      repo={repo}
+                      onClick={() => navigateToRepository(repo)}
+                    />
+                  ))
               ) : (
                 <p className="text-orange-600">
                   No popular repositories available at the moment.
@@ -367,11 +410,13 @@ export default function Dashboard() {
         </div>
       </main>
       <Footer />
-      <OnboardingTour
-        steps={onboardingSteps}
-        onComplete={handleOnboardingComplete}
-        theme="light"
-      />
+      {
+        <OnboardingTour
+          steps={onboardingSteps}
+          onComplete={handleOnboardingComplete}
+          theme="light"
+        />
+      }
     </div>
   );
 }

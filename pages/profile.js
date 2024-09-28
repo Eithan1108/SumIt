@@ -1,19 +1,20 @@
-"use client";
+"use client"
 
-import { useState } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
+import { useState, useEffect } from "react"
+import Link from "next/link"
+import { useRouter, useSearchParams } from "next/navigation"
+import { Button } from "@/components/ui/button"
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Input } from "@/components/ui/input";
+} from "@/components/ui/card"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Badge } from "@/components/ui/badge"
+import { Input } from "@/components/ui/input"
 import {
   Star,
   TrendingUp,
@@ -27,86 +28,118 @@ import {
   Bell,
   User,
   ArrowLeft,
-} from "lucide-react";
-import Header from "../components/Theme/Header";
-import Footer from "../components/Theme/Footer";
+  Users,
+} from "lucide-react"
+import Header from "../components/Theme/Header"
+import Footer from "../components/Theme/Footer"
+import { SummaryCard } from "../components/Cards/SummaryCard"
+import { CommunityCard } from "../components/Cards/CommunityCard"
+import { RepositoryCard } from "../components/Cards/RepositoryCard"
+import { EditProfileModal } from "./EditProfile"
 import {
-  currentUser,
-  summaries,
-  repositories,
-  communities,
-} from "@/lib/mockData";
-import { SummaryCard } from "../components/Cards/SummaryCard";
-import { CommunityCard } from "../components/Cards/CommunityCard";
-import { RepositoryCard } from "../components/Cards/RepositoryCard";
+  fetchUserById,
+  fetchSummariesByOwnerId,
+  fetchLikedSummaries,
+  fetchSavedSummaries,
+  fetchRepositoriesByOwnerId,
+  fetchLikedRepositories,
+  fetchSavedRepositories,
+  updateUser,
+} from "@/lib/db"
 
 export default function ProfilePage() {
-  const [searchTerm, setSearchTerm] = useState("");
-  const router = useRouter();
+  const [searchTerm, setSearchTerm] = useState("")
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const userId = searchParams.get('userId')
+  const [user, setUser] = useState(null)
+  const [userSummaries, setUserSummaries] = useState([])
+  const [likedSummaries, setLikedSummaries] = useState([])
+  const [savedSummaries, setSavedSummaries] = useState([])
+  const [userRepositories, setUserRepositories] = useState([])
+  const [likedRepositories, setLikedRepositories] = useState([])
+  const [savedRepositories, setSavedRepositories] = useState([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [isEditProfileOpen, setIsEditProfileOpen] = useState(false)
+
+  useEffect(() => {
+    const fetchUserData = async () => {
+      if (userId) {
+        setIsLoading(true)
+        try {
+          const [
+            userData,
+            summariesData,
+            likedSummariesData,
+            savedSummariesData,
+            reposData,
+            likedReposData,
+            savedReposData
+          ] = await Promise.all([
+            fetchUserById(userId),
+            fetchSummariesByOwnerId(userId),
+            fetchLikedSummaries(userId),
+            fetchSavedSummaries(userId),
+            fetchRepositoriesByOwnerId(userId),
+            fetchLikedRepositories(userId),
+            fetchSavedRepositories(userId)
+          ])
+          setUser(userData)
+          setUserSummaries(summariesData)
+          setLikedSummaries(likedSummariesData)
+          setSavedSummaries(savedSummariesData)
+          setUserRepositories(reposData)
+          setLikedRepositories(likedReposData)
+          setSavedRepositories(savedReposData)
+        } catch (error) {
+          console.error("Failed to fetch user data:", error)
+        } finally {
+          setIsLoading(false)
+        }
+      } else {
+        setIsLoading(false)
+      }
+    }
+
+    fetchUserData()
+  }, [userId])
 
   const handleSearch = (e) => {
-    e.preventDefault();
-    console.log("Searching in profile:", searchTerm);
+    e.preventDefault()
+    console.log("Searching in profile:", searchTerm)
     // Implement search functionality here
-  };
+  }
 
   const navigateToRepository = (repo) => {
-    // router.push(`/repository/${id}`);
     router.push({
       pathname: `/repository/${repo.id}`,
       query: { repo: JSON.stringify(repo) },
-    });
-  };
+    })
+  }
 
   const navigateToSummary = (summary) => {
-    // router.push({
-    //   pathname: `/summary/${summary.id}`,
-    //   query: { summary: JSON.stringify(summary) },
-    // });
+    router.push(`/summary/${summary.id}?userId=${userId}`);
+  }
+
+  const navigateToCommunity = (community) => {
     router.push({
-      pathname: `/summary/${summary.id}`,
-      query: {
-        summary: JSON.stringify(summary),
-      },
-    });
-  };
+      pathname: `/community/${community.id}`,
+      query: { community: JSON.stringify(community) },
+    })
+  }
 
-  const renderRepository = (repo, isSaved = false) => (
-    <div
-      key={repo.id}
-      className="mb-4 p-4 border-b last:border-b-0 cursor-pointer hover:bg-orange-100"
-      onClick={() => navigateToRepository(repo.id)}
-    >
-      <h3 className="text-lg font-semibold text-orange-700">{repo.name}</h3>
-      <p className="text-sm text-orange-600">{repo.description}</p>
-      <div className="flex items-center mt-2 text-xs text-orange-500">
-        {isSaved && (
-          <span className="flex items-center mr-4">
-            <Bookmark className="w-3 h-3 mr-1" /> Saved
-          </span>
-        )}
-        <span className="flex items-center">
-          <Star className="w-3 h-3 mr-1" /> {repo.stars}
-        </span>
-      </div>
-    </div>
-  );
+  const handleEditProfile = () => {
+    setIsEditProfileOpen(true)
+  }
 
-  const userSummaries = summaries;
-  const likedSummaries = summaries
-    .filter((summary) => summary.likes > 100)
-    .slice(0, 2);
-  const savedSummaries = summaries
-    .filter((summary) => summary.views > 1000)
-    .slice(0, 2);
-  const userRepositories = repositories.slice(0, 3);
-  const likedRepositories = repositories
-    .filter((repo) => repo.stars > 100)
-    .slice(0, 2);
-  const savedRepositories = repositories
-    .filter((repo) => repo.stars > 50)
-    .slice(0, 2);
-  const userCommunities = communities.slice(0, 3);
+  const handleSaveProfile = async (updatedUser) => {
+    try {
+      await updateUser(updatedUser)
+      setUser(updatedUser)
+    } catch (error) {
+      console.error("Failed to update user:", error)
+    }
+  }
 
   return (
     <div className="min-h-screen bg-orange-50">
@@ -114,48 +147,68 @@ export default function ProfilePage() {
 
       <main className="container mx-auto px-4 py-8">
         <Link
-          href="/dashboard"
+          href={`/dashboard?userId=${userId}`}
           className="inline-flex items-center mb-4 text-orange-600 hover:text-orange-800"
         >
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back to Dashboard
         </Link>
 
-        <Card className="mb-8">
+        <Card className="mb-8 bg-white bg-opacity-80 backdrop-blur-sm shadow-xl">
           <CardContent className="pt-6">
-            <div className="flex flex-col md:flex-row items-center md:items-start">
-              <Avatar className="w-24 h-24 mb-4 md:mb-0 md:mr-6">
-                <AvatarImage src={currentUser.avatar} alt={currentUser.name} />
-                <AvatarFallback>{currentUser.name[0]}</AvatarFallback>
+            <div className="flex flex-col md:flex-row items-center md:items-start space-y-4 md:space-y-0 md:space-x-6">
+              <Avatar className="w-24 h-24 border-4 border-orange-200 shadow-md">
+                {user && user.avatar ? (
+                  <AvatarImage src={user.avatar} alt={user.name || 'User avatar'} />
+                ) : (
+                  <AvatarFallback className="bg-orange-300 text-orange-800 text-2xl font-bold">
+                    {user ? user.name.split(' ').map(n => n[0]).join('') : 'U'}
+                  </AvatarFallback>
+                )}
               </Avatar>
-              <div className="text-center md:text-left">
-                <h1 className="text-2xl font-bold text-orange-700">
-                  {currentUser.name}
+              <div className="flex-1 text-center md:text-left">
+                <h1 className="text-2xl font-bold text-orange-800">
+                  {user ? user.name : 'User Not Found'}
                 </h1>
-                <p className="text-orange-600">@{currentUser.username}</p>
-                <p className="mt-2 text-orange-800">{currentUser.bio}</p>
-                <div className="flex justify-center md:justify-start mt-4 space-x-4 text-orange-600">
-                  <span>{currentUser.followers} Followers</span>
-                  <span>{currentUser.following} Following</span>
-                  <span>{currentUser.summariesCount} Summaries</span>
+                {user && (
+                  <>
+                    <p className="text-orange-600 font-medium">@{user.username}</p>
+                    <p className="mt-2 text-gray-700 max-w-md">{user.bio}</p>
+                    <div className="mt-4 flex flex-wrap justify-center md:justify-start gap-4">
+                      <Badge variant="secondary" className="flex items-center space-x-1 bg-orange-200 text-orange-800">
+                        <Users className="w-4 h-4" />
+                        <span>{user.followers.toLocaleString()} Followers</span>
+                      </Badge>
+                      <Badge variant="secondary" className="flex items-center space-x-1 bg-orange-200 text-orange-800">
+                        <User className="w-4 h-4" />
+                        <span>{user.following} Following</span>
+                      </Badge>
+                      <Badge variant="secondary" className="flex items-center space-x-1 bg-orange-200 text-orange-800">
+                        <BookOpen className="w-4 h-4" />
+                        <span>{user.summariesCount} Summaries</span>
+                      </Badge>
+                    </div>
+                  </>
+                )}
+              </div>
+              {user && (
+                <div className="mt-4 md:mt-0 md:ml-auto">
+                  <Button variant="outline" className="mr-2" onClick={handleEditProfile}>
+                    <Edit className="w-4 h-4 mr-2" />
+                    Edit Profile
+                  </Button>
+                  <Button variant="outline">
+                    <Settings className="w-4 h-4 mr-2" />
+                    Settings
+                  </Button>
                 </div>
-              </div>
-              <div className="mt-4 md:mt-0 md:ml-auto">
-                <Button variant="outline" className="mr-2">
-                  <Edit className="w-4 h-4 mr-2" />
-                  Edit Profile
-                </Button>
-                <Button variant="outline">
-                  <Settings className="w-4 h-4 mr-2" />
-                  Settings
-                </Button>
-              </div>
+              )}
             </div>
           </CardContent>
         </Card>
 
         <Tabs defaultValue="summaries" className="space-y-4">
-          <TabsList className="bg-orange-100">
+          <TabsList className="bg-white bg-opacity-70 backdrop-blur-sm">
             <TabsTrigger
               value="summaries"
               className="data-[state=active]:bg-orange-200"
@@ -188,7 +241,7 @@ export default function ProfilePage() {
             </TabsTrigger>
           </TabsList>
           <TabsContent value="summaries">
-            <Card>
+            <Card className="bg-white bg-opacity-80 backdrop-blur-sm">
               <CardHeader>
                 <CardTitle>My Summaries</CardTitle>
                 <CardDescription>Summaries you've created</CardDescription>
@@ -207,7 +260,7 @@ export default function ProfilePage() {
             </Card>
           </TabsContent>
           <TabsContent value="repositories">
-            <Card>
+            <Card className="bg-white bg-opacity-80 backdrop-blur-sm">
               <CardHeader>
                 <CardTitle>My Repositories</CardTitle>
                 <CardDescription>
@@ -228,26 +281,20 @@ export default function ProfilePage() {
             </Card>
           </TabsContent>
           <TabsContent value="communities">
-            <Card>
+            <Card className="bg-white bg-opacity-80 backdrop-blur-sm">
               <CardHeader>
                 <CardTitle>My Communities</CardTitle>
                 <CardDescription>Communities you're a part of</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="h-[400px] overflow-y-auto pr-4">
-                  {userCommunities.map((community) => (
-                    <CommunityCard
-                      key={community.id}
-                      community={community}
-                      onClick={() => navigateToCommunity(community)}
-                    />
-                  ))}
+                  {/* Implement community fetching and display logic here */}
                 </div>
               </CardContent>
             </Card>
           </TabsContent>
           <TabsContent value="liked">
-            <Card>
+            <Card className="bg-white bg-opacity-80 backdrop-blur-sm">
               <CardHeader>
                 <CardTitle>Liked Content</CardTitle>
                 <CardDescription>
@@ -284,9 +331,8 @@ export default function ProfilePage() {
               </CardContent>
             </Card>
           </TabsContent>
-
           <TabsContent value="saved">
-            <Card>
+            <Card className="bg-white bg-opacity-80 backdrop-blur-sm">
               <CardHeader>
                 <CardTitle>Saved Content</CardTitle>
                 <CardDescription>
@@ -326,6 +372,14 @@ export default function ProfilePage() {
         </Tabs>
       </main>
       <Footer />
+      {user && (
+        <EditProfileModal
+          user={user}
+          isOpen={isEditProfileOpen}
+          onClose={() => setIsEditProfileOpen(false)}
+          onSave={handleSaveProfile}
+        />
+      )}
     </div>
-  );
+  )
 }

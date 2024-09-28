@@ -32,29 +32,9 @@ export default function OnboardingTour({ steps, onComplete, theme = "light" }) {
       const targetElement = document.querySelector(steps[currentStep].target);
       if (targetElement) {
         targetElement.scrollIntoView({ behavior: "smooth", block: "center" });
-        highlightElement(targetElement);
       }
     }
-
-    return () => {
-      removeHighlight();
-    };
   }, [currentStep, steps, isVisible, isMinimized]);
-
-  const highlightElement = (element) => {
-    element.style.boxShadow = "0 0 0 9999px rgba(0, 0, 0, 0.5)";
-    element.style.zIndex = "9998";
-    element.style.position = "relative";
-  };
-
-  const removeHighlight = () => {
-    const elements = document.querySelectorAll("*");
-    elements.forEach((el) => {
-      el.style.boxShadow = "";
-      el.style.zIndex = "";
-      el.style.position = "";
-    });
-  };
 
   const handleNext = () => {
     if (currentStep < steps.length - 1) {
@@ -78,7 +58,6 @@ export default function OnboardingTour({ steps, onComplete, theme = "light" }) {
 
   const handleMinimize = () => {
     setIsMinimized(!isMinimized);
-    removeHighlight();
   };
 
   const handleRestart = () => {
@@ -91,8 +70,6 @@ export default function OnboardingTour({ steps, onComplete, theme = "light" }) {
     setIsMinimized(false);
     setCurrentStep(0);
   };
-
-  const progress = ((currentStep + 1) / totalPages) * 100;
 
   const themeClasses =
     theme === "dark" ? "bg-gray-800 text-white" : "bg-white text-gray-800";

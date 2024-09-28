@@ -8,6 +8,7 @@ import { BookOpen, Search, Bell, User } from "lucide-react"
 
 interface HeaderProps {
   onSearch: (searchTerm: string) => void;
+  userId?: string;
 }
 
 // Custom Input component that accepts the props we need
@@ -15,7 +16,7 @@ const Input = ({ ...props }: React.InputHTMLAttributes<HTMLInputElement>) => {
   return <BaseInput {...props} />;
 };
 
-export default function Header({ onSearch }: HeaderProps) {
+export default function Header({ onSearch, userId}: HeaderProps) {
   const [searchTerm, setSearchTerm] = useState('')
 
   const handleSearch = (e: FormEvent<HTMLFormElement>) => {
@@ -54,7 +55,7 @@ export default function Header({ onSearch }: HeaderProps) {
             <Button variant="ghost" size="icon">
               <Bell className="h-5 w-5 text-orange-600" />
             </Button>
-            <Link href="/profile">
+            <Link href={`/profile${userId ? `?userId=${userId}` : ''}`}>
               <Button variant="ghost" size="icon">
                 <User className="h-5 w-5 text-orange-600" />
               </Button>

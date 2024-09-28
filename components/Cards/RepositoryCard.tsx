@@ -1,13 +1,14 @@
 import React from 'react'
 import { Card, CardContent } from "@/components/ui/card"
-import { Star, Bookmark } from "lucide-react"
+import { Heart, Eye, Bookmark } from "lucide-react"
 
 interface RepositoryCardProps {
   repo: {
     id: string
     name: string
     description: string
-    stars: number
+    likes: number
+    views: number
   }
   onClick: (repo: any) => void
   showBookmark?: boolean
@@ -34,8 +35,10 @@ export function RepositoryCard({ repo, onClick, showBookmark = false }: Reposito
             </>
           ) : (
             <>
-              <Star className="mr-1 h-4 w-4" />
-              <span>{repo.stars} stars</span>
+              <Heart className="mr-1 h-4 w-4" />
+              <span className="mr-4">{repo.likes} likes</span>
+              <Eye className="mr-1 h-4 w-4" />
+              <span>{repo.views} views</span>
             </>
           )}
         </div>
