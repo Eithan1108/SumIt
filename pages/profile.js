@@ -143,7 +143,7 @@ export default function ProfilePage() {
 
   return (
     <div className="min-h-screen bg-orange-50">
-      <Header />
+      <Header onSearch={null} userId={user?.id} />
 
       <main className="container mx-auto px-4 py-8">
         <Link

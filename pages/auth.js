@@ -81,7 +81,6 @@ export default function Auth() {
           const createdUser = await createUser(newUser)
           console.log('New user posted successfully')
           router.push(`/dashboard?userId=${createdUser.id}`)
-
         }
       }
     } catch (error) {
@@ -89,6 +88,14 @@ export default function Auth() {
     } finally {
       setIsLoading(false)
     }
+  }
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-orange-50 flex justify-center items-center">
+        <div className="animate-spin rounded-full h-32 w-32 border-t-2 border-b-2 border-orange-500"></div>
+      </div>
+    )
   }
 
   return (
@@ -126,7 +133,6 @@ export default function Auth() {
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     className="pl-8"
-                    disabled={isLoading}
                   />
                 </div>
               </div>
@@ -141,16 +147,14 @@ export default function Auth() {
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   className="pl-8"
-                  disabled={isLoading}
                 />
               </div>
             </div>
             <Button 
               type="submit" 
               className="w-full bg-orange-500 hover:bg-orange-600"
-              disabled={isLoading}
             >
-              {isLoading ? 'Processing...' : (isLogin ? 'Log In' : 'Sign Up')}
+              {isLogin ? 'Log In' : 'Sign Up'}
             </Button>
           </form>
         </CardContent>

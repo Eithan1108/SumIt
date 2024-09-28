@@ -2,31 +2,21 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { AlertCircle, Bell, User, BookOpen, ChevronRight, Folder, Plus, X } from "lucide-react"
-import Link from 'next/link'
+import { AlertCircle, Folder, Plus, X, Tag, Search } from "lucide-react"
 import Footer from "../components/Theme/Footer"
-import { addSummary, fetchUserById, fetchUserRepositories } from '@/lib/db'
-
-const Toast = ({ message, type, onClose }) => (
-  <div className={`fixed bottom-4 right-4 p-4 rounded-md shadow-md ${type === 'error' ? 'bg-red-500' : 'bg-green-500'} text-white`}>
-    <div className="flex justify-between items-center">
-      <p>{message}</p>
-      <button onClick={onClose} className="ml-4 text-white hover:text-gray-200">
-        <X size={16} />
-      </button>
-    </div>
-  </div>
-)
+import Header from "../components/Theme/Header"
+import { addSummary, fetchUserById, fetchUserRepositories, fetchAllTags } from '@/lib/db'
 
 export default function CreateSummary() {
   const router = useRouter()
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [isPrivate, setIsPrivate] = useState(false)
-  const [subject, setSubject] = useState('')
+  const [selectedTags, setSelectedTags] = useState([])
+  const [availableTags, setAvailableTags] = useState([])
+  const [newTag, setNewTag] = useState('')
+  const [tagSearch, setTagSearch] = useState('')
+  const [isTagDropdownOpen, setIsTagDropdownOpen] = useState(false)
   const [location, setLocation] = useState('')
   const [isLocationPickerOpen, setIsLocationPickerOpen] = useState(false)
   const [newFolderName, setNewFolderName] = useState('')
@@ -47,10 +37,12 @@ export default function CreateSummary() {
           setUser(fetchedUser);
           const repos = await fetchUserRepositories(userId);
           setUserRepositories(repos);
+          const tags = await fetchAllTags();
+          setAvailableTags(tags);
         }
       } catch (error) {
-        console.error('Error fetching user data:', error);
-        setToast({ message: 'Failed to load user data. Please try again.', type: 'error' });
+        console.error('Error fetching data:', error);
+        setToast({ message: 'Failed to load data. Please try again.', type: 'error' });
       }
     };
     fetchData();
@@ -70,14 +62,11 @@ export default function CreateSummary() {
         content,
         author: user.name,
         owner: user.id,
-        tags: [subject],
+        tags: selectedTags,
         isPrivate,
         neuronGraph: {}
       }
-      console.log("repo", repoId, "folder", folderId)
       const addedSummary = await addSummary(newSummary, repoId, folderId)
-
-      console.log('Summary added successfully:', addedSummary)
       setToast({ message: 'Summary created successfully!', type: 'success' });
       router.push(`/dashboard?userId=${user.id}`)
     } catch (error) {
@@ -94,6 +83,10 @@ export default function CreateSummary() {
     setLocation(`${repoId}${folderId ? `/${folderId}` : ''}`)
     setSelectedRepo(repo)
     setIsLocationPickerOpen(false)
+  }
+
+  const handleSearch = (term) => {
+    // Implement search functionality
   }
 
   const handleCreateFolder = async () => {
@@ -115,99 +108,129 @@ export default function CreateSummary() {
     }
   }
 
+  const handleAddTag = (tag) => {
+    if (tag && !selectedTags.includes(tag)) {
+      setSelectedTags([...selectedTags, tag])
+      setNewTag('')
+      setTagSearch('')
+    }
+  }
+
+  const handleRemoveTag = (tagToRemove) => {
+    setSelectedTags(selectedTags.filter(tag => tag !== tagToRemove))
+  }
+
+  const filteredTags = availableTags.filter(tag => 
+    tag.toLowerCase().includes(tagSearch.toLowerCase()) && !selectedTags.includes(tag)
+  )
+
   return (
-    <div className="min-h-screen bg-orange-50">
-      <header className="bg-white shadow-sm">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex justify-between items-center">
-            <Link href={`/dashboard?userId=${user?.id}`} className="flex items-center space-x-2">
-              <BookOpen className="h-8 w-8 text-orange-500" />
-              <span className="text-2xl font-bold text-orange-700">SumIt</span>
-            </Link>
+    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-orange-100">
+      <Header onSearch={handleSearch} userId={user?.id} />
 
-            <nav className="flex items-center space-x-4">
-              <Link href="/communities" className="text-orange-600 hover:text-orange-800">
-                Communities
-              </Link>
-              <Button variant="ghost" size="icon">
-                <Bell className="h-5 w-5 text-orange-600" />
-              </Button>
-              <Link href={`/profile?userId=${user?.id}`}>
-                <Button variant="ghost" size="icon">
-                  <User className="h-5 w-5 text-orange-600" />
-                </Button>
-              </Link>
-            </nav>
-          </div>
-        </div>
-      </header>
-
-      <main className="container mx-auto p-4 max-w-2xl">
-        <h1 className="text-3xl font-bold mb-8 text-orange-600">Create a new summary</h1>
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div>
-            <Label htmlFor="title" className="text-lg font-medium text-orange-700">Summary title</Label>
-            <Input 
-              id="title" 
-              value={title} 
-              onChange={(e) => setTitle(e.target.value)} 
-              placeholder="Enter summary title" 
-              className="mt-1 w-full border-orange-300 focus:border-orange-500 focus:ring-orange-500"
-              required
-            />
-          </div>
-          <div>
-            <Label htmlFor="description" className="text-lg font-medium text-orange-700">Description</Label>
-            <textarea 
-              id="description" 
-              value={description} 
-              onChange={(e) => setDescription(e.target.value)} 
-              placeholder="Enter summary description" 
-              className="mt-1 w-full border-orange-300 focus:border-orange-500 focus:ring-orange-500 rounded-md p-2"
-              rows={4}
-            />
-          </div>
-          <div>
-            <Label htmlFor="content" className="text-lg font-medium text-orange-700">Content</Label>
-            <textarea 
-              id="content" 
-              value={content} 
-              onChange={(e) => setContent(e.target.value)} 
-              placeholder="Enter summary content" 
-              className="mt-1 w-full border-orange-300 focus:border-orange-500 focus:ring-orange-500 rounded-md p-2"
-              rows={8}
-              required
-            />
-          </div>
-          <div>
-            <Label htmlFor="subject" className="text-lg font-medium text-orange-700">Subject</Label>
-            <select
-              id="subject"
-              value={subject}
-              onChange={(e) => setSubject(e.target.value)}
-              className="mt-1 w-full border-orange-300 focus:border-orange-500 focus:ring-orange-500 rounded-md p-2"
-            >
-              <option value="">Select a subject</option>
-              <option value="math">Mathematics</option>
-              <option value="physics">Physics</option>
-              <option value="chemistry">Chemistry</option>
-              <option value="biology">Biology</option>
-              <option value="history">History</option>
-              <option value="literature">Literature</option>
-            </select>
-          </div>
-          <div>
-            <Label htmlFor="location" className="text-lg font-medium text-orange-700">Location</Label>
-            <div className="mt-1 relative">
-              <Button
+      <main className="container mx-auto p-4 max-w-3xl">
+        <div className="bg-white shadow-lg rounded-lg p-6">
+          <h1 className="text-2xl font-bold text-orange-700 mb-6">Create a New Summary</h1>
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div>
+              <label htmlFor="title" className="block text-lg font-medium text-orange-700 mb-2">Summary Title</label>
+              <input 
+                id="title" 
+                type="text"
+                value={title} 
+                onChange={(e) => setTitle(e.target.value)} 
+                placeholder="Enter summary title" 
+                className="w-full px-3 py-2 border border-orange-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+                required
+              />
+            </div>
+            <div>
+              <label htmlFor="description" className="block text-lg font-medium text-orange-700 mb-2">Description</label>
+              <textarea 
+                id="description" 
+                value={description} 
+                onChange={(e) => setDescription(e.target.value)} 
+                placeholder="Enter summary description" 
+                className="w-full px-3 py-2 border border-orange-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+                rows={4}
+              />
+            </div>
+            <div>
+              <label htmlFor="content" className="block text-lg font-medium text-orange-700 mb-2">Content</label>
+              <textarea 
+                id="content" 
+                value={content} 
+                onChange={(e) => setContent(e.target.value)} 
+                placeholder="Enter summary content" 
+                className="w-full px-3 py-2 border border-orange-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+                rows={8}
+                required
+              />
+            </div>
+            <div>
+              <label htmlFor="tags" className="block text-lg font-medium text-orange-700 mb-2">Tags</label>
+              <div className="flex flex-wrap gap-2 mb-2">
+                {selectedTags.map((tag, index) => (
+                  <span key={index} className="bg-orange-100 text-orange-800 px-2 py-1 rounded-full text-sm flex items-center">
+                    {tag}
+                    <button type="button" onClick={() => handleRemoveTag(tag)} className="ml-1 text-orange-600 hover:text-orange-800">
+                      <X className="h-4 w-4" />
+                    </button>
+                  </span>
+                ))}
+              </div>
+              <div className="relative">
+                <div className="flex">
+                  <div className="relative flex-grow">
+                    <input
+                      type="text"
+                      value={tagSearch}
+                      onChange={(e) => {
+                        setTagSearch(e.target.value)
+                        setIsTagDropdownOpen(true)
+                      }}
+                      onFocus={() => setIsTagDropdownOpen(true)}
+                      placeholder="Search or add new tag"
+                      className="w-full px-3 py-2 border border-orange-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    />
+                    <Search className="absolute right-3 top-2.5 h-5 w-5 text-gray-400" />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleAddTag(tagSearch)}
+                    className="bg-orange-500 text-white px-4 py-2 rounded-r-md hover:bg-orange-600 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  >
+                    <Tag className="h-5 w-5" />
+                  </button>
+                </div>
+                {isTagDropdownOpen && (
+                  <ul className="absolute z-10 w-full mt-1 bg-white border border-orange-300 rounded-md shadow-lg max-h-60 overflow-auto">
+                    {filteredTags.map((tag, index) => (
+                      <li
+                        key={index}
+                        className="px-3 py-2 hover:bg-orange-100 cursor-pointer"
+                        onClick={() => {
+                          handleAddTag(tag)
+                          setIsTagDropdownOpen(false)
+                        }}
+                      >
+                        {tag}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </div>
+            <div>
+              <label htmlFor="location" className="block text-lg font-medium text-orange-700 mb-2">Location</label>
+              <button
                 type="button"
-                variant="outline"
-                className="w-full justify-start text-left font-normal border-orange-300 hover:bg-orange-50"
+                className="w-full px-3 py-2 border border-orange-300 rounded-md text-left font-normal hover:bg-orange-50 focus:outline-none focus:ring-2 focus:ring-orange-500"
                 onClick={() => setIsLocationPickerOpen(true)}
               >
-                <Folder className="mr-2 h-4 w-4 text-orange-500" />
+                <Folder className="inline-block mr-2 h-4 w-4 text-orange-500" />
                 {location || 'Choose location'}
-              </Button>
+              </button>
               {location && (
                 <div className="mt-2 text-sm text-orange-600">
                   <div className="flex items-center">
@@ -215,7 +238,7 @@ export default function CreateSummary() {
                     <span>{selectedRepo?.name || 'My Summaries'}</span>
                     {location.split('/')[1] && (
                       <>
-                        <ChevronRight className="mx-1 h-4 w-4" />
+                        <span className="mx-1">/</span>
                         <span>{selectedRepo?.rootFolder.items.find(f => f.id === location.split('/')[1])?.name || ''}</span>
                       </>
                     )}
@@ -223,104 +246,108 @@ export default function CreateSummary() {
                 </div>
               )}
             </div>
-          </div>
-          <div className="flex items-center space-x-2">
-            <input
-              type="checkbox"
-              id="private"
-              checked={isPrivate}
-              onChange={(e) => setIsPrivate(e.target.checked)}
-              className="rounded border-orange-300 text-orange-500 focus:ring-orange-500"
-            />
-            <Label htmlFor="private" className="text-orange-700">Make this summary private</Label>
-          </div>
-          <div className="bg-orange-50 border-l-4 border-orange-400 p-4 mb-4">
-            <div className="flex">
-              <div className="flex-shrink-0">
-                <AlertCircle className="h-5 w-5 text-orange-400" />
-              </div>
-              <div className="ml-3">
+            <div className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                id="private"
+                checked={isPrivate}
+                onChange={(e) => setIsPrivate(e.target.checked)}
+                className="rounded border-orange-300 text-orange-500 focus:ring-orange-500"
+              />
+              <label htmlFor="private" className="text-orange-700">Make this summary private</label>
+            </div>
+            <div className="bg-orange-50 border-l-4 border-orange-400 p-4 rounded-md">
+              <div className="flex items-start">
+                <AlertCircle className="h-5 w-5 text-orange-400 mt-0.5 mr-3 flex-shrink-0" />
                 <p className="text-sm text-orange-700">
                   Private summaries are only visible to you and people you share them with.
                 </p>
               </div>
             </div>
-          </div>
-          <Button type="submit" className="w-full bg-orange-500 hover:bg-orange-600 text-white" disabled={isSubmitting}>
-            {isSubmitting ? 'Creating...' : 'Create summary'}
-          </Button>
-        </form>
+            <button 
+              type="submit" 
+              className="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline" 
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? 'Creating...' : 'Create Summary'}
+            </button>
+          </form>
+        </div>
       </main>
 
       {isLocationPickerOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 w-full max-w-md">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-bold text-orange-700">Select Location</h2>
-              <Button variant="ghost" size="icon" onClick={() => setIsLocationPickerOpen(false)}>
-                <X className="h-6 w-6 text-orange-600" />
-              </Button>
+              <button onClick={() => setIsLocationPickerOpen(false)} className="text-orange-600 hover:text-orange-800">
+                <X className="h-6 w-6" />
+              </button>
             </div>
             <div className="space-y-4 max-h-96 overflow-y-auto">
-            {userRepositories.map(repo => (
-              <div key={repo.id} className="border-b border-orange-200 pb-4">
-                <h3 className="font-semibold text-orange-600 mb-2">{repo.name}</h3>
-                <ul className="space-y-2">
-                  <li>
-                    <Button
-                      variant="ghost"
-                      className="w-full justify-start text-orange-700 hover:bg-orange-100"
-                      onClick={() => handleLocationSelect(repo.id)}
-                    >
-                      <Folder className="mr-2 h-4 w-4" />
-                      Root
-                    </Button>
-                  </li>
-                  {repo.rootFolder.items.map(folder => (
-                    <li key={folder.id}>
-                      <Button
-                        variant="ghost"
-                        className="w-full justify-start text-orange-700 hover:bg-orange-100"
-                        onClick={() => handleLocationSelect(repo.id, folder.id)}
+              {userRepositories.map(repo => (
+                <div key={repo.id} className="border-b border-orange-200 pb-4">
+                  <h3 className="font-semibold text-orange-600 mb-2">{repo.name}</h3>
+                  <ul className="space-y-2">
+                    <li>
+                      <button
+                        className="w-full text-left px-2 py-1 rounded-md hover:bg-orange-100 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                        onClick={() => handleLocationSelect(repo.id)}
                       >
-                        <Folder className="mr-2 h-4 w-4" />
-                        {folder.name}
-                      </Button>
+                        <Folder className="inline-block mr-2 h-4 w-4" />
+                        Root
+                      </button>
                     </li>
-                  ))}
-                </ul>
-                {selectedRepo && selectedRepo.id === repo.id && (
-                  <div className="mt-2 flex items-center">
-                    <Input
-                      value={newFolderName}
-                      onChange={(e) => setNewFolderName(e.target.value)}
-                      placeholder="New folder name"
-                      className="mr-2 border-orange-300 focus:border-orange-500 focus:ring-orange-500"
-                    />
-                    <Button onClick={handleCreateFolder} className="bg-orange-500 hover:bg-orange-600 text-white">
-                      <Plus className="h-4 w-4" />
-                    </Button>
-                  </div>
-                )}
-                <Button
-                  variant="ghost"
-                  className="mt-2 text-orange-600 hover:text-orange-700"
-                  onClick={() => setSelectedRepo(selectedRepo?.id === repo.id ? null : repo)}
-                >
-                  {selectedRepo?.id === repo.id ? 'Cancel' : 'Create Folder'}
-                </Button>
-              </div>
-            ))}
+                    {repo.rootFolder.items.map(folder => (
+                      <li key={folder.id}>
+                        <button
+                          className="w-full text-left px-2 py-1 rounded-md hover:bg-orange-100 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                          onClick={() => handleLocationSelect(repo.id, folder.id)}
+                        >
+                          <Folder className="inline-block mr-2 h-4 w-4" />
+                          {folder.name}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                  {selectedRepo && selectedRepo.id === repo.id && (
+                    <div className="mt-2 flex items-center">
+                      <input
+                        type="text"
+                        value={newFolderName}
+                        onChange={(e) => setNewFolderName(e.target.value)}
+                        placeholder="New folder name"
+                        className="flex-grow mr-2 px-2 py-1 border border-orange-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+                      />
+                      <button 
+                        onClick={handleCreateFolder}
+                        className="bg-orange-500 hover:bg-orange-600 text-white px-2 py-1 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+                      >
+                        <Plus className="h-4 w-4" />
+                      </button>
+                    </div>
+                  )}
+                  <button
+                    className="mt-2 text-orange-600 hover:text-orange-700 focus:outline-none focus:underline"
+                    onClick={() => setSelectedRepo(selectedRepo?.id === repo.id ? null : repo)}
+                  >
+                    {selectedRepo?.id === repo.id ? 'Cancel' : 'Create Folder'}
+                  </button>
+                </div>
+              ))}
             </div>
           </div>
         </div>
       )}
       {toast && (
-        <Toast
-          message={toast.message}
-          type={toast.type}
-          onClose={() => setToast(null)}
-        />
+        <div className={`fixed bottom-4 right-4 p-4 rounded-md shadow-md ${toast.type === 'error' ? 'bg-red-500' : 'bg-green-500'} text-white`}>
+          <div className="flex justify-between items-center">
+            <p>{toast.message}</p>
+            <button onClick={() => setToast(null)} className="ml-4 text-white hover:text-gray-200">
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
       )}
       <Footer />
     </div>

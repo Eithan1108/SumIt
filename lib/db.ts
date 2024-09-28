@@ -17,6 +17,19 @@ interface User {
     savedSummaries: string[];
     likedRepositories: string[];
     savedRepositories: string[];
+    followingId: string[];
+    followerIds: string[]; // New field 
+    notifications: Notification[];
+  }
+
+  interface Notification {
+    id: string;
+    date: string;
+    read: boolean;
+    content: string;
+    link: string;
+    sender: string;
+    type: 'follow' | 'like' | 'comment' | 'mention' | 'summary';
   }
 
   interface Comment {
@@ -403,22 +416,51 @@ interface User {
         throw new Error('Failed to fetch summary');
       }
       const summary: Summary = await response.json();
-
+  
       summary.comments.push(newComment);
-
-      const updateResponse = await fetch(`http://localhost:5000/summeries/${summaryId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(summary),
-      });
-
-      if (!updateResponse.ok) {
-        throw new Error('Failed to update summary with new comment');
+  
+      // Fetch the summary owner
+      const ownerResponse = await fetch(`http://localhost:5000/users/${summary.owner}`);
+      if (!ownerResponse.ok) {
+        throw new Error('Failed to fetch summary owner data');
       }
-
-      return await updateResponse.json();
+      const owner: User = await ownerResponse.json();
+  
+      // Create a new notification for the owner
+      const newNotification: Notification = {
+        id: Date.now().toString(),
+        date: new Date().toISOString(),
+        read: false,
+        content: `${newComment.author} commented on your summary "${summary.title}"`,
+        link: `/summary/${summaryId}`,
+        sender: newComment.author,
+        type: 'comment'
+      };
+  
+      owner.notifications.push(newNotification);
+  
+      const [updateSummaryResponse, updateOwnerResponse] = await Promise.all([
+        fetch(`http://localhost:5000/summeries/${summaryId}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(summary),
+        }),
+        fetch(`http://localhost:5000/users/${summary.owner}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(owner),
+        })
+      ]);
+  
+      if (!updateSummaryResponse.ok || !updateOwnerResponse.ok) {
+        throw new Error('Failed to update summary or owner data');
+      }
+  
+      return await updateSummaryResponse.json();
     } catch (error) {
       console.error('Error adding comment to summary:', error);
       throw error;
@@ -431,24 +473,24 @@ interface User {
         fetch(`http://localhost:5000/summeries/${summaryId}`),
         fetch(`http://localhost:5000/users/${userId}`)
       ]);
-
+  
       if (!summaryResponse.ok || !userResponse.ok) {
         throw new Error('Failed to fetch summary or user data');
       }
-
+  
       const summary: Summary = await summaryResponse.json();
       const user: User = await userResponse.json();
-
+  
       // Fetch the summary owner
       const ownerResponse = await fetch(`http://localhost:5000/users/${summary.owner}`);
       if (!ownerResponse.ok) {
         throw new Error('Failed to fetch summary owner data');
       }
       const owner: User = await ownerResponse.json();
-
+  
       const isLiked = user.likedSummaries.includes(summaryId);
       const isOwnSummary = userId === summary.owner;
-
+  
       if (isLiked) {
         // Unlike the summary
         if (!isOwnSummary) {
@@ -461,10 +503,23 @@ interface User {
         if (!isOwnSummary) {
           summary.likes++;
           owner.totalLikes++;
+  
+          // Create a new notification for the owner
+          const newNotification: Notification = {
+            id: Date.now().toString(),
+            date: new Date().toISOString(),
+            read: false,
+            content: `${user.name} liked your summary "${summary.title}"`,
+            link: `/summary/${summaryId}`,
+            sender: user.username,
+            type: 'like'
+          };
+  
+          owner.notifications.push(newNotification);
         }
         user.likedSummaries.push(summaryId);
       }
-
+  
       const [updatedSummaryResponse, updatedUserResponse, updatedOwnerResponse] = await Promise.all([
         fetch(`http://localhost:5000/summeries/${summaryId}`, {
           method: 'PUT',
@@ -488,11 +543,11 @@ interface User {
           body: JSON.stringify(owner),
         })
       ]);
-
+  
       if (!updatedSummaryResponse.ok || !updatedUserResponse.ok || !updatedOwnerResponse.ok) {
         throw new Error('Failed to update summary, user, or owner data');
       }
-
+  
       return {
         summary: await updatedSummaryResponse.json(),
         user: await updatedUserResponse.json(),
@@ -878,9 +933,6 @@ interface User {
       const currentDate = new Date();
       const formattedDate = formatDate(currentDate);
   
-      console.log('Adding summary: Start');
-      console.log('Formatted date:', formattedDate);
-  
       const summaryResponse = await fetch('http://localhost:5000/summeries', {
         method: 'POST',
         headers: {
@@ -897,28 +949,11 @@ interface User {
         }),
       });
   
-      console.log('Summary response status:', summaryResponse.status);
-      console.log('Summary response ok:', summaryResponse.ok);
-  
       if (!summaryResponse.ok) {
-        let errorMessage = `Failed to add new summary: ${summaryResponse.statusText}`;
-        if (summaryResponse.status === 404) {
-          errorMessage = 'The summaries endpoint was not found. Please check your server configuration.';
-        } else {
-          try {
-            const errorData = await summaryResponse.text();
-            errorMessage += ` - ${errorData || ''}`;
-          } catch (textError) {
-            console.error('Error reading error response:', textError);
-          }
-        }
-        throw new Error(errorMessage);
+        throw new Error(`Failed to add new summary: ${summaryResponse.statusText}`);
       }
   
-      console.log('Adding summary: Response OK');
-  
       const addedSummary: Summary = await summaryResponse.json();
-      console.log('Added summary:', addedSummary);
   
       // Update the user's summariesCount
       const userResponse = await fetch(`http://localhost:5000/users/${newSummary.owner}`);
@@ -929,24 +964,54 @@ interface User {
       
       userData.summariesCount += 1;
   
-      const updateUserResponse = await fetch(`http://localhost:5000/users/${newSummary.owner}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(userData),
-      });
-  
-      if (!updateUserResponse.ok) {
-        throw new Error(`Failed to update user data: ${updateUserResponse.statusText}`);
+      // Fetch all users
+      const allUsersResponse = await fetch('http://localhost:5000/users');
+      if (!allUsersResponse.ok) {
+        throw new Error('Failed to fetch all users');
       }
+      const allUsers: User[] = await allUsersResponse.json();
   
-      // If repoId is provided, add the summary to the repository
+      // Create notifications for followers
+      const followerNotifications = allUsers
+        .filter(user => user.followingId.includes(newSummary.owner))
+        .map(follower => {
+          const notification: Notification = {
+            id: Date.now().toString(),
+            date: new Date().toISOString(),
+            read: false,
+            content: `${userData.name} posted a new summary: "${addedSummary.title}"`,
+            link: `/summary/${addedSummary.id}`,
+            sender: userData.username,
+            type: 'summary'
+          };
+          follower.notifications.push(notification);
+          return fetch(`http://localhost:5000/users/${follower.id}`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(follower),
+          });
+        });
+  
+      const updatePromises = [
+        fetch(`http://localhost:5000/users/${newSummary.owner}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(userData),
+        }),
+        ...followerNotifications
+      ];
+  
+      await Promise.all(updatePromises);
+  
+      // Handle repository update separately
       if (repoId) {
         await updateRepositoryToAddSummary(repoId, addedSummary, folderId);
       }
   
-      console.log('Adding summary: Complete');
       return addedSummary;
     } catch (error) {
       console.error('Error adding new summary:', error);
@@ -1045,3 +1110,134 @@ interface User {
     traverse(rootFolder, []);
     return path;
   }
+
+
+export async function fetchUserByUsername(username: string): Promise<User | null> {
+  try {
+    const users = await fetchUsers();
+    const foundUser = users.find((u) => u.username === username);
+    return foundUser || null;
+  } catch (error) {
+    console.error('Failed to fetch user data:', error);
+    throw new Error('Failed to fetch user data');
+  }
+}
+
+export async function followUser(userId: string, followerId: string): Promise<{ follower: User; followedUser: User }> {
+  try {
+    const [userResponse, followerResponse] = await Promise.all([
+      fetch(`http://localhost:5000/users/${userId}`),
+      fetch(`http://localhost:5000/users/${followerId}`)
+    ]);
+
+    if (!userResponse.ok || !followerResponse.ok) {
+      throw new Error('Failed to fetch user data');
+    }
+
+    const user: User = await userResponse.json();
+    const follower: User = await followerResponse.json();
+
+    // Update follower's data
+    follower.following++;
+    if (!follower.followingId.includes(userId)) {
+      follower.followingId.push(userId);
+    }
+
+    // Update user's data
+    user.followers++;
+    if (!user.followerIds.includes(followerId)) {
+      user.followerIds.push(followerId);
+    }
+
+    // Create a new notification
+    const newNotification: Notification = {
+      id: Date.now().toString(),
+      date: new Date().toISOString(),
+      read: false,
+      content: `${follower.name} started following you!`,
+      link: `/profile/${follower.username}`,
+      sender: follower.username,
+      type: 'follow'  // New field
+    };
+
+    user.notifications.push(newNotification);
+
+    // Update both users in the database
+    const [updateUserResponse, updateFollowerResponse] = await Promise.all([
+      fetch(`http://localhost:5000/users/${userId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(user),
+      }),
+      fetch(`http://localhost:5000/users/${followerId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(follower),
+      })
+    ]);
+
+    if (!updateUserResponse.ok || !updateFollowerResponse.ok) {
+      throw new Error('Failed to update user data');
+    }
+
+    return { follower, followedUser: user };
+  } catch (error) {
+    console.error('Error following user:', error);
+    throw error;
+  }
+}
+
+export async function unfollowUser(userId: string, followerId: string): Promise<{ follower: User; unfollowedUser: User }> {
+  try {
+    const [userResponse, followerResponse] = await Promise.all([
+      fetch(`http://localhost:5000/users/${userId}`),
+      fetch(`http://localhost:5000/users/${followerId}`)
+    ]);
+
+    if (!userResponse.ok || !followerResponse.ok) {
+      throw new Error('Failed to fetch user data');
+    }
+
+    const user: User = await userResponse.json();
+    const follower: User = await followerResponse.json();
+
+    // Update follower's data
+    follower.following--;
+    follower.followingId = follower.followingId.filter(id => id !== userId);
+
+    // Update user's data
+    user.followers--;
+    user.followerIds = user.followerIds.filter(id => id !== followerId);
+
+    // Update both users in the database
+    const [updateUserResponse, updateFollowerResponse] = await Promise.all([
+      fetch(`http://localhost:5000/users/${userId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(user),
+      }),
+      fetch(`http://localhost:5000/users/${followerId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(follower),
+      })
+    ]);
+
+    if (!updateUserResponse.ok || !updateFollowerResponse.ok) {
+      throw new Error('Failed to update user data');
+    }
+
+    return { follower, unfollowedUser: user };
+  } catch (error) {
+    console.error('Error unfollowing user:', error);
+    throw error;
+  }
+}

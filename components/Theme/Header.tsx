@@ -1,14 +1,29 @@
 'use client'
 
 import Link from 'next/link'
-import { useState, ChangeEvent, FormEvent } from 'react'
+import { useState, useEffect, ChangeEvent, FormEvent } from 'react'
 import { Button } from "@/components/ui/button"
 import { Input as BaseInput } from "@/components/ui/input"
 import { BookOpen, Search, Bell, User } from "lucide-react"
+import { fetchUserById } from "@/lib/db"
 
 interface HeaderProps {
   onSearch: (searchTerm: string) => void;
   userId?: string;
+}
+
+interface Notification {
+  id: string;
+  date: string;
+  read: boolean;
+  content: string;
+  link: string;
+  sender: string;
+}
+
+interface User {
+  id: string;
+  notifications: Notification[];
 }
 
 // Custom Input component that accepts the props we need
@@ -18,6 +33,25 @@ const Input = ({ ...props }: React.InputHTMLAttributes<HTMLInputElement>) => {
 
 export default function Header({ onSearch, userId}: HeaderProps) {
   const [searchTerm, setSearchTerm] = useState('')
+  const [unreadNotifications, setUnreadNotifications] = useState<Notification[]>([])
+
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      if (userId) {
+        try {
+          const userData = await fetchUserById(userId)
+          if (userData) {
+            const unreadNotifs = userData.notifications.filter(notif => !notif.read)
+            setUnreadNotifications(unreadNotifs)
+          }
+        } catch (error) {
+          console.error("Failed to fetch notifications:", error)
+        }
+      }
+    }
+
+    fetchNotifications()
+  }, [userId])
 
   const handleSearch = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -52,9 +86,14 @@ export default function Header({ onSearch, userId}: HeaderProps) {
             <Link href="/communities" className="text-orange-600 hover:text-orange-800">
               Communities
             </Link>
-            <Button variant="ghost" size="icon">
-              <Bell className="h-5 w-5 text-orange-600" />
-            </Button>
+            <Link href={`/notification/${userId}`}>
+              <Button variant="ghost" size="icon" className="relative">
+                <Bell className="h-5 w-5 text-orange-600" />
+                {unreadNotifications.length > 0 && (
+                  <span className="absolute top-0 right-0 block h-2 w-2 rounded-full bg-red-500" />
+                )}
+              </Button>
+            </Link>
             <Link href={`/profile${userId ? `?userId=${userId}` : ''}`}>
               <Button variant="ghost" size="icon">
                 <User className="h-5 w-5 text-orange-600" />

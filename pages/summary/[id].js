@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import Header from "../../components/Theme/Header"
 import Footer from "../../components/Theme/Footer"
+import OwnerCard from '@/components/Cards/OwnerCard'
 import { fetchSummaryById, fetchUserById, addCommentToSummary, likeSummary, saveSummary, viewSummary } from "@/lib/db"
 
 export default function SummaryPage() {
@@ -259,37 +260,8 @@ export default function SummaryPage() {
             )}
           </CardContent>
         </Card>
-        
-        <div className="mb-6 bg-white rounded-lg shadow-sm p-4 flex items-center justify-between">
-          <div className="flex items-center space-x-4">
-            <Avatar className="w-16 h-16 border-4 border-orange-200 shadow-md">
-              <AvatarImage src={owner.avatar} alt={owner.name} />
-              <AvatarFallback className='bg-orange-300 text-orange-800 text-1xl font-bold'>{owner.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
-            </Avatar>
-            <div>
-              <h3 className="text-lg font-semibold text-orange-700">{owner.name}</h3>
-              <p className="text-sm text-gray-500">@{owner.username}</p>
-              <div className="flex items-center mt-1 text-sm text-gray-600">
-                <Calendar className="w-4 h-4 mr-1" />
-                <span>Joined {new Date(owner.joinDate).toLocaleDateString()}</span>
-              </div>
-            </div>
-          </div>
-          <div className="flex space-x-4">
-            <div className="text-center">
-              <p className="text-2xl font-bold text-orange-600">{owner.totalLikes}</p>
-              <p className="text-xs text-gray-500">Likes</p>
-            </div>
-            <div className="text-center">
-              <p className="text-2xl font-bold text-orange-600">{owner.totalViews}</p>
-              <p className="text-xs text-gray-500">Views</p>
-            </div>
-            <div className="text-center">
-              <p className="text-2xl font-bold text-orange-600">{owner.followers}</p>
-              <p className="text-xs text-gray-500">Followers</p>
-            </div>
-          </div>
-        </div>
+
+        <OwnerCard owner={owner} viewingUserId={user.id} />
         
         <Card>
           <CardHeader>
