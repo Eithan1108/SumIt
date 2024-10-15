@@ -16,6 +16,7 @@ import { SummaryCard } from "@/components/Cards/SummaryCard"
 import { RepositoryCard } from "@/components/Cards/RepositoryCard"
 import { fetchRepositoryById, fetchUserById, likeRepository, saveRepository, viewRepository } from '@/lib/db'
 
+
 function FolderStructure({ folder, onSelectSummary, level = 0 }) {
   const [isOpen, setIsOpen] = useState(level === 0)
 
@@ -244,7 +245,7 @@ export default function RepositoryPage() {
         <ArrowLeft className="mr-2 h-4 w-4" />
         Back to Dashboard
       </Link>
-      {user.id === repo.owner && (
+      {(user.id === repo.owner || repo.collaborators.includes(user.id)) && (
         <Button
           className="bg-orange-500 hover:bg-orange-600 text-white transition-colors duration-200 ease-in-out"
           onClick={() => router.push(`/repository/edit_repository/${repo.id}?userId=${user.id}`)}
@@ -419,7 +420,7 @@ export default function RepositoryPage() {
           <span className="text-sm">Estimated read time: 5 min</span>
         </div>
         <Button 
-          className="bg-orange-500 hover:bg-orange-600 text-white transition-colors duration-200 ease-in-out flex items-center px-4 py-2 rounded-full"
+          className="bg-orange-500 hover:bg-orange-600 text-white transition-colors duration-200 ease-in-out flex items-center px-4 py-2"
           onClick={() => navigateToSummary(selectedSummary)}
         >
           View Full Summary

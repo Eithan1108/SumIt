@@ -1,11 +1,29 @@
+import { useState, useEffect } from 'react'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { BookOpen, Brain, Sparkles, Share2, Zap, Target, Users, Rocket } from "lucide-react"
 import Link from 'next/link'
 import Footer from "../components/Theme/Footer"
+import RandomLoadingComponent from "../components/ui/Loading"
 
 
 export default function Component() {
+
+  const [isLoading, setIsLoading] = useState(true)
+
+  useEffect(() => {
+    // Simulate content loading
+    const timer = setTimeout(() => {
+      setIsLoading(false)
+    }, 300) // Adjust this time as needed
+
+    return () => clearTimeout(timer)
+  }, [])
+
+  if (isLoading) {
+    return <RandomLoadingComponent />
+  }
+
   return (
     <div className="min-h-screen bg-orange-50 flex flex-col">
       <header className="bg-white shadow-sm sticky top-0 z-10">

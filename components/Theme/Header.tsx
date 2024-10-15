@@ -83,9 +83,6 @@ export default function Header({ onSearch, userId}: HeaderProps) {
             </div>
           </form>
           <nav className="flex items-center space-x-4">
-            <Link href="/communities" className="text-orange-600 hover:text-orange-800">
-              Communities
-            </Link>
             <Link href={`/notification/${userId}`}>
               <Button variant="ghost" size="icon" className="relative">
                 <Bell className="h-5 w-5 text-orange-600" />

@@ -1,20 +1,13 @@
 import React from 'react'
 import { Card, CardContent } from "@/components/ui/card"
 import { Clock, TrendingUp, Star, Bookmark } from "lucide-react"
+import { Summary } from '../../lib/types'
 
-interface Summary {
-  id: string;
-  title: string;
-  description: string;
-  dateCreated?: string;
-  views: number;
-  likes: number;
-}
 
 interface SummaryCardProps {
-  summary: Summary;
-  onClick: () => void;
-  showBookmark?: boolean;
+  summary: Summary
+  onClick: () => void
+  showBookmark?: boolean
 }
 
 export function SummaryCard({ summary, onClick, showBookmark = false }: SummaryCardProps) {

@@ -260,8 +260,15 @@ export default function SummaryPage() {
             )}
           </CardContent>
         </Card>
-
+        
+<Card className="mb-6">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-2xl font-bold text-orange-700">Owner</CardTitle>
+      </CardHeader>
+      <CardContent>
         <OwnerCard owner={owner} viewingUserId={user.id} />
+      </CardContent>
+    </Card>
         
         <Card>
           <CardHeader>

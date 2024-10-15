@@ -45,6 +45,7 @@ import {
   fetchLikedRepositories,
   fetchSavedRepositories,
   updateUser,
+  fetchCommunityById
 } from "@/lib/db"
 
 export default function ProfilePage() {
@@ -59,6 +60,7 @@ export default function ProfilePage() {
   const [userRepositories, setUserRepositories] = useState([])
   const [likedRepositories, setLikedRepositories] = useState([])
   const [savedRepositories, setSavedRepositories] = useState([])
+  const [userCommunities, setUserCommunities] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [isEditProfileOpen, setIsEditProfileOpen] = useState(false)
 
@@ -91,6 +93,14 @@ export default function ProfilePage() {
           setUserRepositories(reposData)
           setLikedRepositories(likedReposData)
           setSavedRepositories(savedReposData)
+
+          // Fetch communities
+          if (userData.communities && userData.communities.length > 0) {
+            const communitiesData = await Promise.all(
+              userData.communities.map(communityId => fetchCommunityById(communityId))
+            )
+            setUserCommunities(communitiesData.filter(community => community !== null))
+          }
         } catch (error) {
           console.error("Failed to fetch user data:", error)
         } finally {
@@ -111,10 +121,7 @@ export default function ProfilePage() {
   }
 
   const navigateToRepository = (repo) => {
-    router.push({
-      pathname: `/repository/${repo.id}`,
-      query: { repo: JSON.stringify(repo) },
-    })
+    router.push(`/repository/${repo.id}?userId=${userId}`);
   }
 
   const navigateToSummary = (summary) => {
@@ -122,10 +129,8 @@ export default function ProfilePage() {
   }
 
   const navigateToCommunity = (community) => {
-    router.push({
-      pathname: `/community/${community.id}`,
-      query: { community: JSON.stringify(community) },
-    })
+    router.push(`/community/${community.id}?userId=${userId}`);
+
   }
 
   const handleEditProfile = () => {
@@ -196,10 +201,6 @@ export default function ProfilePage() {
                   <Button variant="outline" className="mr-2" onClick={handleEditProfile}>
                     <Edit className="w-4 h-4 mr-2" />
                     Edit Profile
-                  </Button>
-                  <Button variant="outline">
-                    <Settings className="w-4 h-4 mr-2" />
-                    Settings
                   </Button>
                 </div>
               )}
@@ -288,7 +289,13 @@ export default function ProfilePage() {
               </CardHeader>
               <CardContent>
                 <div className="h-[400px] overflow-y-auto pr-4">
-                  {/* Implement community fetching and display logic here */}
+                  {userCommunities.map((community) => (
+                    <CommunityCard
+                      key={community.id}
+                      community={community}
+                      onClick={() => navigateToCommunity(community)}
+                    />
+                  ))}
                 </div>
               </CardContent>
             </Card>

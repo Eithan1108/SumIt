@@ -6,8 +6,9 @@ import { AlertCircle, Folder, Plus, X, Tag, Search } from "lucide-react"
 import Footer from "../components/Theme/Footer"
 import Header from "../components/Theme/Header"
 import { addSummary, fetchUserById, fetchUserRepositories, fetchAllTags } from '@/lib/db'
+import { ToastProvider, useToast } from '@/components/ui/Toats'
 
-export default function CreateSummary() {
+function CreateSummaryContent() {
   const router = useRouter()
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
@@ -24,8 +25,8 @@ export default function CreateSummary() {
   const [content, setContent] = useState('')
   const [user, setUser] = useState(null)
   const [userRepositories, setUserRepositories] = useState([])
-  const [toast, setToast] = useState(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const { addToast } = useToast()
 
   useEffect(() => {
     const fetchData = async () => {
@@ -42,11 +43,11 @@ export default function CreateSummary() {
         }
       } catch (error) {
         console.error('Error fetching data:', error);
-        setToast({ message: 'Failed to load data. Please try again.', type: 'error' });
+        addToast('Failed to load data. Please try again.', 'error');
       }
     };
     fetchData();
-  }, []);
+  }, [addToast]);
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -67,11 +68,11 @@ export default function CreateSummary() {
         neuronGraph: {}
       }
       const addedSummary = await addSummary(newSummary, repoId, folderId)
-      setToast({ message: 'Summary created successfully!', type: 'success' });
+      addToast('Summary created successfully!', 'success');
       router.push(`/dashboard?userId=${user.id}`)
     } catch (error) {
       console.error('Error creating summary:', error)
-      setToast({ message: error.message || 'Failed to create summary. Please try again.', type: 'error' });
+      addToast(error.message || 'Failed to create summary. Please try again.', 'error');
     } finally {
       setIsSubmitting(false)
     }
@@ -100,10 +101,10 @@ export default function CreateSummary() {
           )
         )
         setNewFolderName('')
-        setToast({ message: 'Folder created successfully!', type: 'success' });
+        addToast('Folder created successfully!', 'success');
       } catch (error) {
         console.error('Error creating new folder:', error)
-        setToast({ message: 'Failed to create folder. Please try again.', type: 'error' });
+        addToast('Failed to create folder. Please try again.', 'error');
       }
     }
   }
@@ -125,7 +126,7 @@ export default function CreateSummary() {
   )
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-orange-100">
+    <div className="min-h-screen bg-orange-50">
       <Header onSearch={handleSearch} userId={user?.id} />
 
       <main className="container mx-auto p-4 max-w-3xl">
@@ -315,7 +316,7 @@ export default function CreateSummary() {
                       <input
                         type="text"
                         value={newFolderName}
-                        onChange={(e) => setNewFolderName(e.target.value)}
+                        onChange={(e) =>   setNewFolderName(e.target.value)}
                         placeholder="New folder name"
                         className="flex-grow mr-2 px-2 py-1 border border-orange-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
                       />
@@ -339,17 +340,15 @@ export default function CreateSummary() {
           </div>
         </div>
       )}
-      {toast && (
-        <div className={`fixed bottom-4 right-4 p-4 rounded-md shadow-md ${toast.type === 'error' ? 'bg-red-500' : 'bg-green-500'} text-white`}>
-          <div className="flex justify-between items-center">
-            <p>{toast.message}</p>
-            <button onClick={() => setToast(null)} className="ml-4 text-white hover:text-gray-200">
-              <X className="h-4 w-4" />
-            </button>
-          </div>
-        </div>
-      )}
       <Footer />
     </div>
+  )
+}
+
+export default function CreateSummary() {
+  return (
+    <ToastProvider>
+      <CreateSummaryContent />
+    </ToastProvider>
   )
 }

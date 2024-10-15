@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import Head from 'next/head'
 import Link from 'next/link'
-import { ArrowLeft, Users, User, BookOpen, Edit, Settings, UserPlus, UserMinus } from "lucide-react"
+import { ArrowLeft, Users, BookOpen, Edit, User2 , Settings, UserPlus, UserMinus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -13,44 +13,9 @@ import { RepositoryCard } from '@/components/Cards/RepositoryCard'
 import Header from "@/components/Theme/Header"
 import Footer from "@/components/Theme/Footer"
 import { fetchUserByUsername, fetchUserById, fetchSummariesByOwnerId, fetchUserRepositories, followUser, unfollowUser } from "@/lib/db"
+import { User, Summary, Repository } from '../../lib/types'
 
-interface User {
-  id: string
-  name: string
-  username: string
-  avatar: string
-  totalLikes: number
-  totalViews: number
-  followers: number
-  following: number
-  bio: string
-  summariesCount: number
-  followingId: string[]
-  followerIds: string[]
-  likedSummaries: string[]
-  savedSummaries: string[]
-  likedRepositories: string[]
-  savedRepositories: string[]
-  rate: number
-  status: string
-}
 
-interface Summary {
-  id: string
-  title: string
-  description: string
-  likes: number
-  views: number
-  dateCreated: string
-}
-
-interface Repo {
-  id: string
-  name: string
-  description: string
-  likes: number
-  views: number
-}
 
 export default function ViewUserProfile() {
   const router = useRouter()
@@ -58,7 +23,7 @@ export default function ViewUserProfile() {
   const [user, setUser] = useState<User | null>(null)
   const [viewingUser, setViewingUser] = useState<User | null>(null)
   const [userSummaries, setUserSummaries] = useState<Summary[]>([])
-  const [userRepos, setUserRepos] = useState<Repo[]>([])
+  const [userRepos, setUserRepos] = useState<Repository[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isFollowing, setIsFollowing] = useState(false)
 
@@ -170,7 +135,7 @@ export default function ViewUserProfile() {
                       <span>{user.followers.toLocaleString()} Followers</span>
                     </Badge>
                     <Badge variant="secondary" className="flex items-center space-x-1 bg-orange-200 text-orange-800">
-                      <User className="w-4 h-4" />
+                      <User2 className="w-4 h-4" />
                       <span>{user.following} Following</span>
                     </Badge>
                     <Badge variant="secondary" className="flex items-center space-x-1 bg-orange-200 text-orange-800">

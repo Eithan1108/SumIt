@@ -9,12 +9,13 @@
       "following": 568,
       "summariesCount": 42,
       "totalLikes": 14223,
-      "totalViews": 501216,
+      "totalViews": 501225,
       "rate": 4.8,
       "status": "new",
       "id": "e819",
       "likedSummaries": [
-        "1727269236478"
+        "1727269236478",
+        "1728632466666"
       ],
       "savedSummaries": [
         "1727269236478"
@@ -106,7 +107,209 @@
           "link": "/profile/Eitan",
           "sender": "Eitan",
           "type": "follow"
+        },
+        {
+          "id": "1727638641644",
+          "date": "2024-09-29T19:37:21.644Z",
+          "read": true,
+          "content": "Eitan Klein liked your summary \"Introduction to Machine Learning\"",
+          "link": "/summary/2",
+          "sender": "Eitan",
+          "type": "like"
+        },
+        {
+          "id": "1727638642647",
+          "date": "2024-09-29T19:37:22.647Z",
+          "read": true,
+          "content": "Eitan Klein liked your summary \"Introduction to Machine Learning\"",
+          "link": "/summary/2",
+          "sender": "Eitan",
+          "type": "like"
+        },
+        {
+          "id": "1727638644243",
+          "date": "2024-09-29T19:37:24.243Z",
+          "read": true,
+          "content": "Eitan Klein commented on your summary \"Introduction to Machine Learning\"",
+          "link": "/summary/2",
+          "sender": "Eitan Klein",
+          "type": "comment"
+        },
+        {
+          "id": "1727641090489",
+          "type": "collaboration_invite",
+          "content": "You've been invited to collaborate on the repository \"Machine Learning Resource\"",
+          "date": "2024-09-29T20:18:10.489Z",
+          "read": true,
+          "sender": "1371",
+          "link": "/collaboration-request/2?userId=e819"
+        },
+        {
+          "id": "1727641979079",
+          "type": "collaboration_invite",
+          "content": "You've been invited to collaborate on the repository \"Machine Learning Resource\"",
+          "date": "2024-09-29T20:32:59.079Z",
+          "read": true,
+          "sender": "1371",
+          "link": "/collaboration-request/2?userId=e819"
+        },
+        {
+          "id": "1727678562313",
+          "date": "2024-09-30T06:42:42.313Z",
+          "read": true,
+          "content": "Eitan Klein liked your summary \"Introduction to Machine Learning\"",
+          "link": "/summary/2",
+          "sender": "Eitan",
+          "type": "like"
+        },
+        {
+          "id": "1727678571809",
+          "date": "2024-09-30T06:42:51.809Z",
+          "read": true,
+          "content": "Eitan Klein commented on your summary \"Introduction to Machine Learning\"",
+          "link": "/summary/2",
+          "sender": "Eitan Klein",
+          "type": "comment"
+        },
+        {
+          "id": "1727678581739",
+          "date": "2024-09-30T06:43:01.739Z",
+          "read": true,
+          "content": "Eitan Klein started following you!",
+          "link": "/profile/Eitan",
+          "sender": "Eitan",
+          "type": "follow"
+        },
+        {
+          "id": "1727678587834",
+          "date": "2024-09-30T06:43:07.834Z",
+          "read": true,
+          "content": "Eitan Klein started following you!",
+          "link": "/profile/Eitan",
+          "sender": "Eitan",
+          "type": "follow"
+        },
+        {
+          "id": "1727678608009",
+          "date": "2024-09-30T06:43:28.009Z",
+          "read": true,
+          "content": "Eitan Klein started following you!",
+          "link": "/profile/Eitan",
+          "sender": "Eitan",
+          "type": "follow"
+        },
+        {
+          "id": "1727678609539",
+          "date": "2024-09-30T06:43:29.539Z",
+          "read": true,
+          "content": "Eitan Klein started following you!",
+          "link": "/profile/Eitan",
+          "sender": "Eitan",
+          "type": "follow"
+        },
+        {
+          "id": "1727678650278",
+          "type": "collaboration_invite",
+          "content": "You've been invited to collaborate on the repository \"Machine Learning Resource\"",
+          "date": "2024-09-30T06:44:10.278Z",
+          "read": true,
+          "sender": "1371",
+          "link": "/collaboration-request/2?userId=e819"
+        },
+        {
+          "id": "1727873237118",
+          "type": "join_accepted",
+          "content": "Your request to join Softweare Engineering has been accepted.",
+          "date": "2024-10-02T12:47:17.118Z",
+          "read": true,
+          "sender": "1371",
+          "link": "/community/1"
+        },
+        {
+          "id": "1727873391289",
+          "type": "join_rejected",
+          "content": "Your request to join Softweare Engineering has been rejected.",
+          "date": "2024-10-02T12:49:51.289Z",
+          "read": true,
+          "sender": "1371",
+          "link": "/community/1"
+        },
+        {
+          "id": "1727873415236",
+          "type": "join_accepted",
+          "content": "Your request to join Softweare Engineering has been accepted.",
+          "date": "2024-10-02T12:50:15.236Z",
+          "read": true,
+          "sender": "1371",
+          "link": "/community/1"
+        },
+        {
+          "id": "1727873623560",
+          "type": "join_rejected",
+          "content": "Your request to join Softweare Engineering has been rejected.",
+          "date": "2024-10-02T12:53:43.560Z",
+          "read": true,
+          "sender": "1371",
+          "link": "/community/1"
+        },
+        {
+          "id": "1727875223591",
+          "type": "join_accepted",
+          "content": "Your request to join Softweare Engineering has been accepted.",
+          "date": "2024-10-02T13:20:23.591Z",
+          "read": true,
+          "sender": "1371",
+          "link": "/community/1"
+        },
+        {
+          "id": "1728155938636",
+          "type": "join_accepted",
+          "content": "Your request to join JCT has been accepted.",
+          "date": "2024-10-05T19:18:58.636Z",
+          "read": true,
+          "sender": "1371",
+          "link": "/community/1728155586115"
+        },
+        {
+          "id": "1728157794400",
+          "date": "2024-10-05T19:49:54.400Z",
+          "read": true,
+          "content": "Eitan Klein posted a new summary: \"Infi\"",
+          "link": "/summary/1728157794384",
+          "sender": "Eitan",
+          "type": "summary"
+        },
+        {
+          "id": "1728208598722",
+          "type": "join_accepted",
+          "content": "Your request to join JCT has been accepted.",
+          "date": "2024-10-06T09:56:38.722Z",
+          "read": true,
+          "sender": "1371",
+          "link": "/community/1728155586115"
+        },
+        {
+          "id": "1728632466688",
+          "date": "2024-10-11T07:41:06.688Z",
+          "read": true,
+          "content": "Eitan Klein posted a new summary: \"vcb\"",
+          "link": "/summary/1728632466666",
+          "sender": "Eitan",
+          "type": "summary"
+        },
+        {
+          "id": "1728813949593",
+          "type": "collaboration_invite",
+          "content": "You've been invited to collaborate on the repository \"Machine Learning Resource\"",
+          "date": "2024-10-13T10:05:49.593Z",
+          "read": true,
+          "sender": "1371",
+          "link": "/collaboration-request/2?userId=e819"
         }
+      ],
+      "communities": [
+        "1",
+        "1728155586115"
       ]
     },
     {
@@ -124,7 +327,8 @@
       "id": "0290",
       "likedSummaries": [],
       "savedSummaries": [],
-      "followingId": []
+      "followingId": [],
+      "communities": []
     },
     {
       "name": "Alice Johnson",
@@ -141,7 +345,8 @@
       "id": "70ba",
       "likedSummaries": [],
       "savedSummaries": [],
-      "followingId": []
+      "followingId": [],
+      "communities": []
     },
     {
       "name": "Bob Brown",
@@ -158,7 +363,8 @@
       "id": "f138",
       "likedSummaries": [],
       "savedSummaries": [],
-      "followingId": []
+      "followingId": [],
+      "communities": []
     },
     {
       "name": "John Smith",
@@ -175,7 +381,8 @@
       "id": "f03f",
       "likedSummaries": [],
       "savedSummaries": [],
-      "followingId": []
+      "followingId": [],
+      "communities": []
     },
     {
       "name": "Eitan Klein",
@@ -184,9 +391,9 @@
       "bio": "Hello i am a third year student at jct",
       "followers": 512201,
       "following": 18,
-      "summariesCount": 33,
-      "totalLikes": 10073,
-      "totalViews": 118762,
+      "summariesCount": 35,
+      "totalLikes": 10074,
+      "totalViews": 118891,
       "rate": 4.8,
       "status": "new",
       "id": "1371",
@@ -195,7 +402,8 @@
         "2"
       ],
       "savedSummaries": [
-        "1"
+        "1",
+        "1727339977967"
       ],
       "likedRepositories": [
         "3",
@@ -225,7 +433,7 @@
         {
           "id": "1727448670456",
           "date": "2024-09-27T14:51:10.456Z",
-          "read": false,
+          "read": true,
           "content": "Jane Doe started following you!",
           "link": "/profile/janedoe",
           "sender": "janedoe",
@@ -234,7 +442,7 @@
         {
           "id": "1727448691447",
           "date": "2024-09-27T14:51:31.447Z",
-          "read": false,
+          "read": true,
           "content": "Jane Doe commented on your summary \"Introduction to Quantum Mechanics\"",
           "link": "/summary/1",
           "sender": "Jane Doe",
@@ -243,12 +451,43 @@
         {
           "id": "1727448764059",
           "date": "2024-09-27T14:52:44.059Z",
-          "read": false,
+          "read": true,
           "content": "Jane Doe commented on your summary \"Introduction to Quantum Mechanics\"",
           "link": "/summary/1",
           "sender": "Jane Doe",
           "type": "comment"
+        },
+        {
+          "id": "1727638247208",
+          "date": "2024-09-29T19:30:47.208Z",
+          "read": true,
+          "content": "Eitan Klein commented on your summary \"ccccccccccc\"",
+          "link": "/summary/1727339977967",
+          "sender": "Eitan Klein",
+          "type": "comment"
+        },
+        {
+          "id": "1728208399274",
+          "date": "2024-10-06T09:53:19.274Z",
+          "read": true,
+          "content": "Eitan Klein commented on your summary \"ccccccccccc\"",
+          "link": "/summary/1727339977967",
+          "sender": "Eitan Klein",
+          "type": "comment"
+        },
+        {
+          "id": "1728804081499",
+          "date": "2024-10-13T07:21:21.499Z",
+          "read": true,
+          "content": "Jane Doe liked your summary \"vcb\"",
+          "link": "/summary/1728632466666",
+          "sender": "janedoe",
+          "type": "like"
         }
+      ],
+      "communities": [
+        "1",
+        "1728818276523"
       ]
     },
     {
@@ -266,7 +505,8 @@
       "status": "new",
       "likedSummaries": [],
       "savedSummaries": [],
-      "followingId": []
+      "followingId": [],
+      "communities": []
     },
     {
       "id": "1727270812578",
@@ -290,7 +530,8 @@
       "likedRepositories": [],
       "savedRepositories": [],
       "notifications": [],
-      "followingId": []
+      "followingId": [],
+      "communities": []
     }
   ],
   "summeries": [
@@ -376,7 +617,7 @@
       "title": "Introduction to Machine Learning",
       "description": "This summary gives an overview of the foundational concepts in machine learning, covering algorithms, model training, and real-world use cases.",
       "content": "Machine Learning is a subset of artificial intelligence that enables systems to learn from data and improve performance without being explicitly programmed. This summary covers essential topics like supervised and unsupervised learning, neural networks, and popular algorithms such as decision trees and k-nearest neighbors.",
-      "views": 1587,
+      "views": 1593,
       "likes": 21,
       "comments": [
         {
@@ -408,6 +649,18 @@
           "author": "Eitan Klein",
           "content": "Hey",
           "timestamp": "2024-09-27T14:41:56.523Z"
+        },
+        {
+          "id": "1727638644234",
+          "author": "Eitan Klein",
+          "content": "fdg",
+          "timestamp": "2024-09-29T19:37:24.234Z"
+        },
+        {
+          "id": "1727678571801",
+          "author": "Eitan Klein",
+          "content": "Hello!",
+          "timestamp": "2024-09-30T06:42:51.801Z"
         }
       ],
       "dateCreated": "2023-07-19",
@@ -503,7 +756,7 @@
       "title": "Introduction to Blockchain Technology",
       "description": "A concise overview of blockchain technology, discussing its foundational principles, decentralized structure, and real-world applications such as cryptocurrencies and smart contracts.",
       "content": "Blockchain is a decentralized ledger technology that enables secure and transparent transactions without a central authority. This summary explores key concepts like cryptographic hashing, distributed consensus, and blockchain's applications in areas like finance, supply chains, and voting systems.",
-      "views": 1477,
+      "views": 1480,
       "likes": 96,
       "comments": [
         {
@@ -682,6 +935,18 @@
           "author": "Eitan Klein",
           "content": "Hey",
           "timestamp": "2024-09-26T08:42:20.341Z"
+        },
+        {
+          "id": "1727638247199",
+          "author": "Eitan Klein",
+          "content": "sda",
+          "timestamp": "2024-09-29T19:30:47.199Z"
+        },
+        {
+          "id": "1728208399260",
+          "author": "Eitan Klein",
+          "content": "לחעה",
+          "timestamp": "2024-10-06T09:53:19.260Z"
         }
       ],
       "dateCreated": "2024-09-26",
@@ -814,6 +1079,38 @@
       "comments": [],
       "dateCreated": "2024-09-26",
       "lastUpdated": "2024-09-26"
+    },
+    {
+      "id": "1728157794384",
+      "title": "Infi",
+      "description": "Infi math",
+      "content": "Infi math for first year in JCT",
+      "author": "Eitan Klein",
+      "owner": "1371",
+      "tags": [],
+      "isPrivate": false,
+      "neuronGraph": {},
+      "views": 0,
+      "likes": 0,
+      "comments": [],
+      "dateCreated": "2024-10-05",
+      "lastUpdated": "2024-10-05"
+    },
+    {
+      "id": "1728632466666",
+      "title": "vcb",
+      "description": "cvb",
+      "content": "cvb",
+      "author": "Eitan Klein",
+      "owner": "1371",
+      "tags": [],
+      "isPrivate": false,
+      "neuronGraph": {},
+      "views": 1,
+      "likes": 1,
+      "comments": [],
+      "dateCreated": "2024-10-11",
+      "lastUpdated": "2024-10-11"
     }
   ],
   "repositories": [
@@ -822,7 +1119,7 @@
       "name": "Quantum Physics Notes",
       "description": "A comprehensive collection of quantum physics summaries and notes",
       "author": "Dr. Jane Smith",
-      "owner": "1371",
+      "owner": "Eitan Klein",
       "stars": 108,
       "likes": 45,
       "views": 30,
@@ -926,13 +1223,17 @@
     },
     {
       "id": "2",
-      "name": "Machine Learning Resources",
+      "name": "Machine Learning Resource",
       "description": "A curated collection of machine learning notes, tutorials, and research papers.",
       "author": "Dr. Alan Walker",
       "owner": "1371",
       "stars": 145,
       "likes": 101,
-      "views": 236,
+      "views": 345,
+      "collaborators": [
+        "e819"
+      ],
+      "pendingCollaborators": [],
       "tags": [
         "Machine Learning",
         "AI",
@@ -943,24 +1244,15 @@
         "name": "Root",
         "items": [
           {
+            "id": "1727637286308",
+            "name": "Base",
+            "items": [],
+            "path": []
+          },
+          {
             "id": "f2",
             "name": "Deep Learning",
             "items": [
-              {
-                "id": "1727339977967",
-                "title": "ccccccccccc",
-                "description": "ccccccccccccccc",
-                "author": "Eitan Klein",
-                "owner": "1371",
-                "lastUpdated": "2024-09-26",
-                "views": 0,
-                "likes": 0,
-                "comments": 0,
-                "path": [
-                  "Root",
-                  "Advanced Neural Networks"
-                ]
-              },
               {
                 "id": "s3",
                 "title": "Introduction to Neural Networks",
@@ -984,6 +1276,19 @@
                 "id": "f1",
                 "name": "Basics",
                 "items": [
+                  {
+                    "id": "1727639396867",
+                    "name": "Bis",
+                    "items": [
+                      {
+                        "id": "1727640859657",
+                        "name": "bas",
+                        "items": [],
+                        "path": []
+                      }
+                    ],
+                    "path": []
+                  },
                   {
                     "id": "2",
                     "title": "Introduction to Machine Learning",
@@ -1072,7 +1377,37 @@
                   "Root",
                   "Advanced Neural Networks"
                 ]
+              },
+              {
+                "id": "1728632466666",
+                "title": "vcb",
+                "description": "cvb",
+                "author": "Eitan Klein",
+                "owner": "1371",
+                "lastUpdated": "2024-10-11",
+                "views": 0,
+                "likes": 0,
+                "comments": 0,
+                "path": [
+                  "Root",
+                  "Advanced Neural Networks"
+                ]
               }
+            ]
+          },
+          {
+            "id": "1727339977967",
+            "title": "ccccccccccc",
+            "description": "ccccccccccccccc",
+            "author": "Eitan Klein",
+            "owner": "1371",
+            "lastUpdated": "2024-09-26",
+            "views": 0,
+            "likes": 0,
+            "comments": 0,
+            "path": [
+              "Root",
+              "Advanced Neural Networks"
             ]
           }
         ]
@@ -1263,7 +1598,7 @@
       "name": "Introduction to Astrophysics",
       "description": "A collection of astrophysics summaries, covering key concepts and recent discoveries.",
       "author": "Prof. Michael Lee",
-      "owner": "1371",
+      "owner": "Eitan Klein",
       "stars": 100,
       "tags": [
         "Astrophysics",
@@ -1349,6 +1684,222 @@
       },
       "views": 10,
       "likes": 4
+    },
+    {
+      "id": "1728157637484",
+      "name": "First Year Freash",
+      "description": "A repository for the first year",
+      "author": "Eitan Klein",
+      "owner": "1371",
+      "stars": 0,
+      "tags": [],
+      "rootFolder": {
+        "id": "root",
+        "name": "Root",
+        "items": [
+          {
+            "id": "1728157794384",
+            "title": "Infi",
+            "description": "Infi math",
+            "author": "Eitan Klein",
+            "owner": "1371",
+            "lastUpdated": "2024-10-05",
+            "views": 0,
+            "likes": 0,
+            "comments": 0,
+            "path": [
+              "Root"
+            ]
+          }
+        ],
+        "path": []
+      },
+      "views": 18,
+      "likes": 0,
+      "collaborators": [],
+      "pendingCollaborators": []
+    },
+    {
+      "id": "1728632021081",
+      "name": "sdf",
+      "description": "xcv",
+      "author": "Eitan Klein",
+      "owner": "Eitan Klein",
+      "stars": 0,
+      "tags": [],
+      "rootFolder": {
+        "id": "root",
+        "name": "Root",
+        "items": [],
+        "path": []
+      },
+      "views": 1,
+      "likes": 0,
+      "collaborators": [],
+      "pendingCollaborators": []
+    }
+  ],
+  "communities": [
+    {
+      "id": "1",
+      "name": "Softweare Engineering",
+      "description": "A community dedicated to exploring and discussing the latest advancements in Softweare Engineering.",
+      "members": [
+        "1371",
+        "e819"
+      ],
+      "admins": [
+        "1371"
+      ],
+      "tags": [
+        "quantum computing",
+        "physics",
+        "computer science",
+        "research"
+      ],
+      "rules": [
+        "Be respectful and professional in all interactions.",
+        "Only share peer-reviewed or reputable sources.",
+        "No promotion of commercial products without prior approval.",
+        "Engage in constructive discussions and debates."
+      ],
+      "creationDate": "2023-01-15T00:00:00Z",
+      "lastActivityDate": "2023-10-02T14:30:00Z",
+      "totalMembers": 1502,
+      "totalContent": 230,
+      "repositories": [
+        "1",
+        "2"
+      ],
+      "joinPolicy": "open",
+      "pendingMembers": [
+        "e819"
+      ]
+    },
+    {
+      "id": "1728155586115",
+      "name": "JCT",
+      "description": "This is the all JCT community",
+      "members": [
+        "1371",
+        "e819"
+      ],
+      "admins": [
+        "1371"
+      ],
+      "tags": [],
+      "rules": [],
+      "creationDate": "2024-10-05T19:13:06.115Z",
+      "lastActivityDate": "2024-10-05T19:13:06.115Z",
+      "totalMembers": 2,
+      "totalContent": 1,
+      "repositories": [
+        "1728157637484"
+      ],
+      "joinPolicy": "request",
+      "pendingMembers": []
+    },
+    {
+      "id": "1728631860616",
+      "name": "fdg",
+      "description": "dfg",
+      "members": [
+        "1371"
+      ],
+      "admins": [
+        "1371"
+      ],
+      "tags": [],
+      "rules": [],
+      "creationDate": "2024-10-11T07:31:00.616Z",
+      "lastActivityDate": "2024-10-11T07:31:00.616Z",
+      "totalMembers": 1,
+      "totalContent": 0,
+      "repositories": [],
+      "joinPolicy": "open",
+      "pendingMembers": []
+    },
+    {
+      "id": "1728631908638",
+      "name": "xcv",
+      "description": "xcv",
+      "members": [
+        "1371"
+      ],
+      "admins": [
+        "1371"
+      ],
+      "tags": [],
+      "rules": [],
+      "creationDate": "2024-10-11T07:31:48.638Z",
+      "lastActivityDate": "2024-10-11T07:31:48.638Z",
+      "totalMembers": 1,
+      "totalContent": 1,
+      "repositories": [
+        "1728632021081"
+      ],
+      "joinPolicy": "request",
+      "pendingMembers": []
+    },
+    {
+      "id": "1728631931139",
+      "name": "vcb",
+      "description": "cvb",
+      "members": [
+        "1371"
+      ],
+      "admins": [
+        "1371"
+      ],
+      "tags": [],
+      "rules": [],
+      "creationDate": "2024-10-11T07:32:11.139Z",
+      "lastActivityDate": "2024-10-11T07:32:11.139Z",
+      "totalMembers": 1,
+      "totalContent": 0,
+      "repositories": [],
+      "joinPolicy": "open",
+      "pendingMembers": []
+    },
+    {
+      "id": "1728818096990",
+      "name": "bvc",
+      "description": "bvc",
+      "members": [
+        "1371"
+      ],
+      "admins": [
+        "1371"
+      ],
+      "tags": [],
+      "rules": [],
+      "creationDate": "2024-10-13T11:14:56.990Z",
+      "lastActivityDate": "2024-10-13T11:14:56.990Z",
+      "totalMembers": 1,
+      "totalContent": 0,
+      "repositories": [],
+      "joinPolicy": "request",
+      "pendingMembers": []
+    },
+    {
+      "id": "1728818276523",
+      "name": "mmm",
+      "description": "mmm",
+      "members": [
+        "1371"
+      ],
+      "admins": [
+        "1371"
+      ],
+      "tags": [],
+      "rules": [],
+      "creationDate": "2024-10-13T11:17:56.523Z",
+      "lastActivityDate": "2024-10-13T11:17:56.523Z",
+      "totalMembers": 1,
+      "totalContent": 0,
+      "repositories": [],
+      "joinPolicy": "request",
+      "pendingMembers": []
     }
   ]
 }

@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label"
 import { BookOpen, User, Mail } from "lucide-react"
 import Link from 'next/link'
 import { fetchUsers, createUser, findUserByUsername, isUsernameTaken } from '@/lib/db'
+import RandomLoadingComponent from '@/components/ui/Loading'
 
 export default function Auth() {
   const mockApiUrl = 'http://localhost:5000/users'
@@ -91,11 +92,7 @@ export default function Auth() {
   }
 
   if (isLoading) {
-    return (
-      <div className="min-h-screen bg-orange-50 flex justify-center items-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-t-2 border-b-2 border-orange-500"></div>
-      </div>
-    )
+    return <RandomLoadingComponent />
   }
 
   return (

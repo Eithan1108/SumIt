@@ -1,103 +1,7 @@
 // This file contains all database-related operations
+import { User, Community, Summary, Repository, Notification, Comment, NeuronGraph, RepositoryItem, RepositoryFolder } from './types'
 
-interface User {
-    id: string;
-    name: string;
-    username: string;
-    avatar: string;
-    bio: string;
-    followers: number;
-    following: number;
-    summariesCount: number;
-    totalLikes: number;
-    totalViews: number;
-    rate: number;
-    status: string;
-    likedSummaries: string[];
-    savedSummaries: string[];
-    likedRepositories: string[];
-    savedRepositories: string[];
-    followingId: string[];
-    followerIds: string[]; // New field 
-    notifications: Notification[];
-  }
 
-  interface Notification {
-    id: string;
-    date: string;
-    read: boolean;
-    content: string;
-    link: string;
-    sender: string;
-    type: 'follow' | 'like' | 'comment' | 'mention' | 'summary';
-  }
-
-  interface Comment {
-    id: string;
-    author: string;
-    content: string;
-    timestamp: string;
-  }
-  
-  interface NeuronGraphTerm {
-    term: string;
-    definition: string;
-    relatedTerms: string[];
-  }
-  
-  interface NeuronGraph {
-    [key: string]: NeuronGraphTerm;
-  }
-  
-  export interface Summary {
-    id: string;
-    title: string;
-    description: string;
-    content: string;
-    views: number;
-    likes: number;
-    comments: Comment[];
-    dateCreated: string;
-    lastUpdated: string;
-    author: string;
-    owner: string;
-    tags: string[];
-    isPrivate?: boolean;
-    neuronGraph: NeuronGraph;
-  }
-
-  interface RepositoryItem {
-    id: string;
-    title: string;
-    description: string;
-    author: string;
-    owner: string;
-    lastUpdated: string;
-    views: number;
-    likes: number;
-    comments: number;
-    path: string[];
-  }
-  
-  interface RepositoryFolder {
-    id: string;
-    name: string;
-    items: (RepositoryItem | RepositoryFolder)[];
-    path: string[];
-  }
-  
-  interface Repository {
-    id: string;
-    name: string;
-    description: string;
-    author: string; // Added this line
-    owner: string;
-    stars: number;
-    likes: number;
-    views: number;
-    tags: string[];
-    rootFolder: RepositoryFolder;
-  }
   
   const mockApiUrl = 'http://localhost:5000/users';
   
@@ -342,7 +246,7 @@ interface User {
     
     const updatedRepositories = repositories.map(repo => {
       if (repo.owner === updatedUser.id) {
-        return { ...repo, owner: updatedUser.name };
+        return { ...repo, owner: updatedUser.id };
       }
       return repo;
     });
@@ -1238,6 +1142,519 @@ export async function unfollowUser(userId: string, followerId: string): Promise<
     return { follower, unfollowedUser: user };
   } catch (error) {
     console.error('Error unfollowing user:', error);
+    throw error;
+  }
+}
+
+export async function inviteCollaborator(repoId: string, username: string): Promise<Repository> {
+  // Fetch the repository
+  const repo = await fetchRepositoryById(repoId)
+  if (!repo) {
+    throw new Error('Repository not found')
+  }
+
+  // Fetch the user to be invited
+  const user = await fetchUserByUsername(username)
+  if (!user) {
+    throw new Error('User not found')
+  }
+
+  // Check if the user is already a collaborator or has a pending invitation
+  if (repo.collaborators.includes(user.id) || repo.pendingCollaborators.includes(user.id)) {
+    throw new Error('User is already a collaborator or has a pending invitation')
+  }
+
+  // Add the user to pending collaborators
+  const updatedPendingCollaborators = [...repo.pendingCollaborators, user.id]
+  const updatedRepo = await updateRepository(repoId, { pendingCollaborators: updatedPendingCollaborators })
+
+  // Create a notification for the invited user
+  const notification: Notification = {
+    id: Date.now().toString(),
+    type: 'collaboration_invite',
+    content: `You've been invited to collaborate on the repository "${repo.name}"`,
+    date: new Date().toISOString(),
+    read: false,
+    sender: repo.owner,
+    link: `/collaboration-request/${repoId}?userId=${user.id}`
+  }
+
+  // Add the notification to the user's notifications
+  const updatedUser: User = {
+    ...user,
+    notifications: [...user.notifications, notification]
+  }
+  await updateUser(updatedUser)
+
+  return updatedRepo
+}
+
+export async function removeCollaborator(repoId: string, userId: string): Promise<Repository> {
+  const repo = await fetchRepositoryById(repoId)
+  if (!repo) {
+    throw new Error('Repository not found')
+  }
+  repo.collaborators = repo.collaborators.filter(id => id !== userId)
+  return await updateRepository(repoId, { collaborators: repo.collaborators })
+}
+
+export async function cancelCollaborationInvitation(repoId: string, userId: string): Promise<Repository> {
+  const repo = await fetchRepositoryById(repoId)
+  if (!repo) {
+    throw new Error('Repository not found')
+  }
+  repo.pendingCollaborators = repo.pendingCollaborators.filter(id => id !== userId)
+  return await updateRepository(repoId, { pendingCollaborators: repo.pendingCollaborators })
+}
+
+export async function acceptCollaboration(repoId: string, userId: string): Promise<Repository> {
+  const repo = await fetchRepositoryById(repoId)
+  if (!repo) {
+    throw new Error('Repository not found')
+  }
+  repo.pendingCollaborators = repo.pendingCollaborators.filter(id => id !== userId)
+  repo.collaborators.push(userId)
+  return await updateRepository(repoId, {
+    pendingCollaborators: repo.pendingCollaborators,
+    collaborators: repo.collaborators
+  })
+}
+
+export async function rejectCollaboration(repoId: string, userId: string): Promise<Repository> {
+  return await cancelCollaborationInvitation(repoId, userId)
+}
+
+export async function fetchCollaborationRequest(repoId: string, userId: string): Promise<{ repository: Repository; inviter: User }> {
+  const repo = await fetchRepositoryById(repoId)
+  if (!repo) {
+    throw new Error('Repository not found')
+  }
+  const inviter = await fetchUserById(repo.owner)
+  if (!inviter) {
+    throw new Error('Inviter not found')
+  }
+  return { repository: repo, inviter }
+}
+
+export async function fetchCommunities(): Promise<Community[]> {
+  try {
+    const response = await fetch('http://localhost:5000/communities');
+    if (!response.ok) {
+      throw new Error('Failed to fetch communities');
+    }
+    return await response.json();
+  } catch (error) {
+    console.error('Error fetching communities:', error);
+    throw error;
+  }
+}
+
+export async function fetchCommunityById(id: string): Promise<Community | null> {
+  try {
+    const response = await fetch(`http://localhost:5000/communities/${id}`);
+    if (!response.ok) {
+      if (response.status === 404) {
+        return null;
+      }
+      throw new Error('Failed to fetch community');
+    }
+    return await response.json();
+  } catch (error) {
+    console.error('Error fetching community by ID:', error);
+    throw error;
+  }
+}
+
+export async function joinCommunity(userId: string, communityId: string): Promise<{ user: User; community: Community }> {
+  try {
+    // Fetch the user and community
+    const [userResponse, communityResponse] = await Promise.all([
+      fetch(`http://localhost:5000/users/${userId}`),
+      fetch(`http://localhost:5000/communities/${communityId}`)
+    ]);
+
+    if (!userResponse.ok || !communityResponse.ok) {
+      throw new Error('Failed to fetch user or community data');
+    }
+
+    const user: User = await userResponse.json();
+    const community: Community = await communityResponse.json();
+
+    // Check if the user is already a member
+    if (community.members.includes(userId)) {
+      throw new Error('User is already a member of this community');
+    }
+
+    // Check the join policy
+    if (community.joinPolicy !== 'open') {
+      throw new Error('This community requires an invitation or request to join');
+    }
+
+    // Update user's communities
+    user.communities.push(communityId);
+
+    // Update community's members and totalMembers
+    community.members.push(userId);
+    community.totalMembers += 1;
+
+    // Update both user and community in the database
+    const [updatedUserResponse, updatedCommunityResponse] = await Promise.all([
+      fetch(`http://localhost:5000/users/${userId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(user),
+      }),
+      fetch(`http://localhost:5000/communities/${communityId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(community),
+      })
+    ]);
+
+    if (!updatedUserResponse.ok || !updatedCommunityResponse.ok) {
+      throw new Error('Failed to update user or community data');
+    }
+
+    return {
+      user: await updatedUserResponse.json(),
+      community: await updatedCommunityResponse.json()
+    };
+  } catch (error) {
+    console.error('Error joining community:', error);
+    throw error;
+  }
+}
+
+export async function leaveCommunity(userId: string, communityId: string): Promise<{ user: User; community: Community }> {
+  try {
+    // Fetch the user and community
+    const [userResponse, communityResponse] = await Promise.all([
+      fetch(`http://localhost:5000/users/${userId}`),
+      fetch(`http://localhost:5000/communities/${communityId}`)
+    ]);
+
+    if (!userResponse.ok || !communityResponse.ok) {
+      throw new Error('Failed to fetch user or community data');
+    }
+
+    const user: User = await userResponse.json();
+    const community: Community = await communityResponse.json();
+
+    // Check if the user is a member
+    if (!community.members.includes(userId)) {
+      throw new Error('User is not a member of this community');
+    }
+
+    // Update user's communities
+    user.communities = user.communities.filter(id => id !== communityId);
+
+    // Update community's members and totalMembers
+    community.members = community.members.filter(id => id !== userId);
+    community.totalMembers -= 1;
+
+    // Update both user and community in the database
+    const [updatedUserResponse, updatedCommunityResponse] = await Promise.all([
+      fetch(`http://localhost:5000/users/${userId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(user),
+      }),
+      fetch(`http://localhost:5000/communities/${communityId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(community),
+      })
+    ]);
+
+    if (!updatedUserResponse.ok || !updatedCommunityResponse.ok) {
+      throw new Error('Failed to update user or community data');
+    }
+
+    return {
+      user: await updatedUserResponse.json(),
+      community: await updatedCommunityResponse.json()
+    };
+  } catch (error) {
+    console.error('Error leaving community:', error);
+    throw error;
+  }
+}
+
+// Add this function to db.ts
+export async function requestToJoinCommunity(userId: string, communityId: string): Promise<{ user: User; community: Community }> {
+  try {
+    // Fetch the user and community
+    const [userResponse, communityResponse] = await Promise.all([
+      fetch(`http://localhost:5000/users/${userId}`),
+      fetch(`http://localhost:5000/communities/${communityId}`)
+    ]);
+
+    if (!userResponse.ok || !communityResponse.ok) {
+      throw new Error('Failed to fetch user or community data');
+    }
+
+    const user: User = await userResponse.json();
+    const community: Community = await communityResponse.json();
+
+    // Check if the user is already a member or has a pending request
+    if (community.members.includes(userId) || community.pendingMembers?.includes(userId)) {
+      throw new Error('User is already a member or has a pending request');
+    }
+
+    // Add user to pendingMembers
+    community.pendingMembers = community.pendingMembers || [];
+    community.pendingMembers.push(userId);
+
+    // Update community in the database
+    const updateCommunityResponse = await fetch(`http://localhost:5000/communities/${communityId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(community),
+    });
+
+    if (!updateCommunityResponse.ok) {
+      throw new Error('Failed to update community data');
+    }
+
+    return { user, community: await updateCommunityResponse.json() };
+  } catch (error) {
+    console.error('Error requesting to join community:', error);
+    throw error;
+  }
+}
+
+export async function acceptJoinRequest(communityId: string, requesterId: string, adminId: string): Promise<void> {
+  try {
+    const [communityResponse, requesterResponse] = await Promise.all([
+      fetch(`http://localhost:5000/communities/${communityId}`),
+      fetch(`http://localhost:5000/users/${requesterId}`)
+    ]);
+
+    if (!communityResponse.ok || !requesterResponse.ok) {
+      throw new Error('Failed to fetch community or requester data');
+    }
+
+    const community: Community = await communityResponse.json();
+    const requester: User = await requesterResponse.json();
+
+    // Remove requester from pendingMembers and add to members
+    community.pendingMembers = community.pendingMembers?.filter(id => id !== requesterId) || [];
+    community.members.push(requesterId);
+    community.totalMembers += 1;
+
+    // Add community to requester's communities
+    requester.communities.push(communityId);
+
+    // Create a notification for the requester
+    const notification: Notification = {
+      id: Date.now().toString(),
+      type: 'join_accepted',
+      content: `Your request to join ${community.name} has been accepted.`,
+      date: new Date().toISOString(),
+      read: false,
+      sender: adminId,
+      link: `/community/${communityId}`
+    };
+    requester.notifications.push(notification);
+
+    // Update both community and requester in the database
+    await Promise.all([
+      fetch(`http://localhost:5000/communities/${communityId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(community),
+      }),
+      fetch(`http://localhost:5000/users/${requesterId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(requester),
+      })
+    ]);
+  } catch (error) {
+    console.error('Error accepting join request:', error);
+    throw error;
+  }
+}
+
+export async function rejectJoinRequest(communityId: string, requesterId: string, adminId: string): Promise<void> {
+  try {
+    const [communityResponse, requesterResponse] = await Promise.all([
+      fetch(`http://localhost:5000/communities/${communityId}`),
+      fetch(`http://localhost:5000/users/${requesterId}`)
+    ]);
+
+    if (!communityResponse.ok || !requesterResponse.ok) {
+      throw new Error('Failed to fetch community or requester data');
+    }
+
+    const community: Community = await communityResponse.json();
+    const requester: User = await requesterResponse.json();
+
+    // Remove requester from pendingMembers
+    community.pendingMembers = community.pendingMembers?.filter(id => id !== requesterId) || [];
+
+    // Create a notification for the requester
+    const notification: Notification = {
+      id: Date.now().toString(),
+      type: 'join_rejected',
+      content: `Your request to join ${community.name} has been rejected.`,
+      date: new Date().toISOString(),
+      read: false,
+      sender: adminId,
+      link: `/community/${communityId}`
+    };
+    requester.notifications.push(notification);
+
+    // Update both community and requester in the database
+    await Promise.all([
+      fetch(`http://localhost:5000/communities/${communityId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(community),
+      }),
+      fetch(`http://localhost:5000/users/${requesterId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(requester),
+      })
+    ]);
+  } catch (error) {
+    console.error('Error rejecting join request:', error);
+    throw error;
+  }
+}
+
+export async function updateCommunity(id: string, updatedData: Partial<Community>): Promise<Community> {
+  try {
+    const response = await fetch(`http://localhost:5000/communities/${id}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(updatedData),
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error updating community:', error);
+    throw error;
+  }
+}
+
+export async function addCommunity(newCommunity: Omit<Community, 'id'>): Promise<Community> {
+  try {
+    // Create the new community
+    const communityResponse = await fetch('http://localhost:5000/communities', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        ...newCommunity,
+        id: Date.now().toString(),
+      }),
+    });
+
+    if (!communityResponse.ok) {
+      throw new Error('Failed to create new community');
+    }
+
+    const createdCommunity: Community = await communityResponse.json();
+
+    // Fetch the user data
+    const userResponse = await fetch(`http://localhost:5000/users/${newCommunity.admins[0]}`);
+    if (!userResponse.ok) {
+      throw new Error('Failed to fetch user data');
+    }
+
+    const userData: User = await userResponse.json();
+
+    // Update the user's communities array
+    userData.communities = [...userData.communities, createdCommunity.id];
+
+    // Save the updated user data
+    const updateUserResponse = await fetch(`http://localhost:5000/users/${userData.id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(userData),
+    });
+
+    if (!updateUserResponse.ok) {
+      throw new Error('Failed to update user data');
+    }
+
+    return createdCommunity;
+  } catch (error) {
+    console.error('Error creating new community:', error);
+    throw error;
+  }
+}
+
+
+export async function addRepository(newRepo: Omit<Repository, 'id' | 'collaborators' | 'pendingCollaborators'>, communityId?: string): Promise<Repository> {
+  try {
+    const response = await fetch('http://localhost:5000/repositories', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        ...newRepo,
+        id: Date.now().toString(),
+        collaborators: [],
+        pendingCollaborators: [],
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to create new repository');
+    }
+
+    const createdRepo: Repository = await response.json();
+
+    // If a community is specified, update the community's repositories
+    if (communityId) {
+      const communityResponse = await fetch(`http://localhost:5000/communities/${communityId}`);
+      if (!communityResponse.ok) {
+        throw new Error('Failed to fetch community data');
+      }
+      const community: Community = await communityResponse.json();
+      
+      community.repositories.push(createdRepo.id);
+      community.totalContent += 1;
+
+      const updateCommunityResponse = await fetch(`http://localhost:5000/communities/${communityId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(community),
+      });
+
+      if (!updateCommunityResponse.ok) {
+        throw new Error('Failed to update community data');
+      }
+    }
+
+    return createdRepo;
+  } catch (error) {
+    console.error('Error creating new repository:', error);
     throw error;
   }
 }

@@ -8,10 +8,13 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { ArrowLeft, Save, Plus, Trash2, Folder, File, X } from "lucide-react"
+import { ArrowLeft, Save, Plus, Trash2, Folder, File, UserPlus, UserMinus } from "lucide-react"
 import Header from '@/components/Theme/Header'
 import Footer from "@/components/Theme/Footer"
-import { fetchRepositoryById, updateRepository } from '@/lib/db'
+import { fetchRepositoryById, updateRepository, inviteCollaborator, removeCollaborator, cancelCollaborationInvitation } from '@/lib/db'
+import { Repository, RepositoryItem, RepositoryFolder, User } from '../../../lib/types'
+import { CollaboratorInvitation } from '@/components/Collaborator/CollaboratorInvitation'
+import { ToastProvider, useToast } from '@/components/ui/Toats'
 
 interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   label?: string;
@@ -40,62 +43,7 @@ function Input({ label, error, className = '', ...props }: InputProps) {
   )
 }
 
-interface RepositoryItem {
-  id: string;
-  title: string;
-  description: string;
-  author: string;
-  owner: string;
-  lastUpdated: string;
-  views: number;
-  likes: number;
-  comments: number;
-  path: string[];
-}
-
-interface RepositoryFolder {
-  id: string;
-  name: string;
-  items: (RepositoryItem | RepositoryFolder)[];
-}
-
-interface Repository {
-  id: string;
-  name: string;
-  description: string;
-  owner: string;
-  stars: number;
-  likes: number;
-  views: number;
-  tags: string[];
-  rootFolder: RepositoryFolder;
-}
-
-interface NotificationProps {
-  message: string;
-  onClose: () => void;
-}
-
-const Notification: React.FC<NotificationProps> = ({ message, onClose }) => {
-  React.useEffect(() => {
-    const timer = setTimeout(() => {
-      onClose();
-    }, 3000);
-
-    return () => clearTimeout(timer);
-  }, [onClose]);
-
-  return (
-    <div className="fixed bottom-4 right-4 bg-orange-500 text-white px-4 py-2 rounded-md shadow-lg flex items-center">
-      <span>{message}</span>
-      <button onClick={onClose} className="ml-2">
-        <X className="h-4 w-4" />
-      </button>
-    </div>
-  );
-};
-
-export default function EditRepositoryPage() {
+function EditRepositoryPageContent() {
   const params = useParams()
   const searchParams = useSearchParams()
   const id = params?.id as string | undefined
@@ -105,38 +53,40 @@ export default function EditRepositoryPage() {
   const [error, setError] = useState<string | null>(null)
   const [selectedItem, setSelectedItem] = useState<RepositoryItem | RepositoryFolder | null>(null)
   const [openFolders, setOpenFolders] = useState<Set<string>>(new Set())
-  const [notification, setNotification] = useState<string | null>(null)
   const [newFolderName, setNewFolderName] = useState<string>('')
   const [addingFolderTo, setAddingFolderTo] = useState<string | null>(null)
+  const [collaboratorUsername, setCollaboratorUsername] = useState('')
+  const { addToast } = useToast()
 
   useEffect(() => {
     const fetchData = async () => {
+      const id = params?.id as string
+      const userId = searchParams?.get('userId')
       if (!id || !userId) {
-        setError('Invalid URL parameters');
-        setLoading(false);
-        return;
+        setError('Invalid URL parameters')
+        setLoading(false)
+        return
       }
 
       try {
-        const repoData = await fetchRepositoryById(id);
+        const repoData = await fetchRepositoryById(id)
         if (!repoData) {
-          throw new Error('Repository not found');
+          throw new Error('Repository not found')
         }
-        if (repoData.owner !== userId) {
-          throw new Error('Unauthorized to edit this repository');
+        if (repoData.owner !== userId && !(repoData?.collaborators.includes(userId))) {
+          throw new Error('Unauthorized to edit this repository')
         }
-        setRepo(repoData);
-        setOpenFolders(new Set([repoData.rootFolder.id]));
+        setRepo(repoData)
       } catch (err) {
-        console.error("Error fetching data:", err);
-        setError(err instanceof Error ? err.message : 'An error occurred while fetching data');
+        console.error("Error fetching data:", err)
+        setError(err instanceof Error ? err.message : 'An error occurred while fetching data')
       } finally {
-        setLoading(false);
+        setLoading(false)
       }
-    };
+    }
 
-    fetchData();
-  }, [id, userId]);
+    fetchData()
+  }, [params, searchParams])
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -155,12 +105,50 @@ export default function EditRepositoryPage() {
     setLoading(true);
     try {
       await updateRepository(repo.id, repo);
-      setNotification('Repository updated successfully');
+      addToast('Repository updated successfully', 'success');
+      
     } catch (err) {
       console.error("Error updating repository:", err);
-      setError('Failed to update repository. Please try again.');
+      addToast('Failed to update repository. Please try again.', 'error');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleInviteCollaborator = async () => {
+    if (!repo || !collaboratorUsername) return
+    try {
+      const updatedRepo = await inviteCollaborator(repo.id, collaboratorUsername)
+      setRepo(updatedRepo)
+      setCollaboratorUsername('')
+      addToast('Collaborator invited successfully', 'success');
+    } catch (err) {
+      console.error("Error inviting collaborator:", err)
+      addToast('Failed to invite collaborator. Please try again.', 'error');
+    }
+  }
+
+  const handleRemoveCollaborator = async (collaboratorId: string) => {
+    if (!repo) return;
+    try {
+      const updatedRepo = await removeCollaborator(repo.id, collaboratorId);
+      setRepo(updatedRepo);
+      addToast('Collaborator removed successfully', 'success');
+    } catch (err) {
+      console.error("Error removing collaborator:", err);
+      addToast('Failed to remove collaborator. Please try again.', 'error');
+    }
+  };
+
+  const handleCancelInvitation = async (userId: string) => {
+    if (!repo) return;
+    try {
+      const updatedRepo = await cancelCollaborationInvitation(repo.id, userId);
+      setRepo(updatedRepo);
+      addToast('Invitation cancelled successfully', 'success');
+    } catch (err) {
+      console.error("Error cancelling invitation:", err);
+      addToast('Failed to cancel invitation. Please try again.', 'error');
     }
   };
 
@@ -226,7 +214,8 @@ export default function EditRepositoryPage() {
     const newFolder: RepositoryFolder = {
       id: Date.now().toString(),
       name: newFolderName.trim(),
-      items: []
+      items: [],
+      path: []
     };
 
     setRepo(prevRepo => {
@@ -338,7 +327,7 @@ export default function EditRepositoryPage() {
                     placeholder="New folder name"
                     className="flex-grow"
                   />
-                  <Button onClick={handleConfirmAddFolder} className="bg-orange-500 hover:bg-orange-600 text-white">
+                  <Button onClick={handleConfirmAddFolder} className="bg-orange-500 hover:bg-orange-600  text-white">
                     Add
                   </Button>
                   <Button onClick={handleCancelAddFolder} className="bg-gray-300 hover:bg-gray-400 text-gray-800">
@@ -375,6 +364,7 @@ export default function EditRepositoryPage() {
                         </div>
                       )}
                     </Draggable>
+                  
                   ))}
                 </div>
               )}
@@ -441,6 +431,29 @@ export default function EditRepositoryPage() {
               </div>
 
               <div>
+                <Label htmlFor="collaborator">Invite Collaborator</Label>
+                <div className="flex items-center space-x-2">
+                  <Input
+                    id="collaborator"
+                    value={collaboratorUsername}
+                    onChange={(e) => setCollaboratorUsername(e.target.value)}
+                    placeholder="Enter username"
+                  />
+                  <Button onClick={handleInviteCollaborator} type="button">
+                    <UserPlus className="mr-2 h-4 w-4" />
+                    Invite
+                  </Button>
+                </div>
+              </div>
+
+              <CollaboratorInvitation
+                collaborators={repo.collaborators}
+                pendingCollaborators={repo.pendingCollaborators}
+                onRemoveCollaborator={handleRemoveCollaborator}
+                onCancelInvitation={handleCancelInvitation}
+              />
+
+              <div>
                 <Label htmlFor="tags">Tags (comma-separated)</Label>
                 <Input
                   id="tags"
@@ -490,13 +503,14 @@ export default function EditRepositoryPage() {
       </main>
 
       <Footer />
-
-      {notification && (
-        <Notification
-          message={notification}
-          onClose={() => setNotification(null)}
-        />
-      )}
     </div>
+  )
+}
+
+export default function EditRepositoryPage() {
+  return (
+    <ToastProvider>
+      <EditRepositoryPageContent />
+    </ToastProvider>
   )
 }

@@ -1,16 +1,11 @@
 import React from 'react'
 import { Card, CardContent } from "@/components/ui/card"
 import { Heart, Eye, Bookmark } from "lucide-react"
+import { Repository } from '../../lib/types'
 
 interface RepositoryCardProps {
-  repo: {
-    id: string
-    name: string
-    description: string
-    likes: number
-    views: number
-  }
-  onClick: (repo: any) => void
+  repo: Repository
+  onClick: (repo: Repository) => void
   showBookmark?: boolean
 }
 

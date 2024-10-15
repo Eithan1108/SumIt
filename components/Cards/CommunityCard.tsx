@@ -1,15 +1,10 @@
 import React from 'react'
 import { Card, CardContent } from "@/components/ui/card"
 import { Users, User } from "lucide-react"
+import { Community } from "@/lib/types"
 
 interface CommunityCardProps {
-  community: {
-    id: string
-    name: string
-    description?: string
-    members: number
-    role?: string
-  }
+  community: Community
   onClick?: (community: any) => void
 }
 
@@ -30,13 +25,8 @@ export function CommunityCard({ community, onClick }: CommunityCardProps) {
         )}
         <div className="flex items-center text-sm text-orange-500">
           <Users className="mr-1 h-4 w-4" />
-          <span className="mr-4">{community.members} members</span>
-          {community.role && (
-            <>
-              <User className="mr-1 h-4 w-4" />
-              <span>{community.role}</span>
-            </>
-          )}
+          <span className="mr-4">{community.totalMembers} members</span>
+
         </div>
       </CardContent>
     </Card>

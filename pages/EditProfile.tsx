@@ -2,25 +2,9 @@
 
 import React, { useState } from "react"
 import { updateUserWithCascade } from "@/lib/db"
+import { User } from '../lib/types'
 
-interface User {
-  id: string
-  name: string
-  username: string
-  avatar: string
-  bio: string
-  followers: number
-  following: number
-  summariesCount: number
-  totalLikes: number
-  totalViews: number
-  rate: number
-  status: string
-  likedSummaries: string[]
-  savedSummaries: string[]
-  likedRepositories: string[]
-  savedRepositories: string[]
-}
+
 
 interface EditProfileModalProps {
   user: User
