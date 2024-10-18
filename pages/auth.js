@@ -6,37 +6,19 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { BookOpen, User, Mail } from "lucide-react"
+import { BookOpen, User, Mail, Lock } from "lucide-react"
 import Link from 'next/link'
-import { fetchUsers, createUser, findUserByUsername, isUsernameTaken } from '@/lib/db'
+import { createUser, verifyUser, isUsernameTaken } from '@/lib/db'
 import RandomLoadingComponent from '@/components/ui/Loading'
 
 export default function Auth() {
-  const mockApiUrl = 'http://localhost:5000/users'
-
   const router = useRouter()
   const [isLogin, setIsLogin] = useState(true)
   const [username, setUsername] = useState('')
   const [name, setName] = useState('')
+  const [password, setPassword] = useState('')
   const [error, setError] = useState(null)
   const [isLoading, setIsLoading] = useState(false)
-  const [users, setUsers] = useState([])
-
-  useEffect(() => {
-    const loadUsers = async () => {
-      setIsLoading(true)
-      try {
-        const fetchedUsers = await fetchUsers()
-        setUsers(fetchedUsers)
-      } catch (error) {
-        setError('Failed to fetch user data. Please try again later.')
-      } finally {
-        setIsLoading(false)
-      }
-    }
-
-    loadUsers()
-  }, [])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -46,16 +28,17 @@ export default function Auth() {
     try {
       if (isLogin) {
         // Handle login
-        const user = findUserByUsername(users, username)
+        const user = await verifyUser(username, password)
         if (user) {
           console.log('Login successful')
           router.push(`/dashboard?userId=${user.id}`)
         } else {
-          setError('Invalid username. Please try again.')
+          setError('Invalid username or password. Please try again.')
         }
       } else {
         // Handle signup
-        if (isUsernameTaken(users, username)) {
+        const usernameTaken = await isUsernameTaken(username)
+        if (usernameTaken) {
           setError('Username already exists. Please choose another.')
         } else {
           console.log('Signup successful')
@@ -63,6 +46,7 @@ export default function Auth() {
           const newUser = {
             name: name,
             username: username,
+            password: password,
             avatar: "/placeholder.svg?height=100&width=100",
             bio: "",
             followers: 0,
@@ -72,7 +56,6 @@ export default function Auth() {
             totalViews: 0,
             rate: 0,
             status: "new",
-            id: Date.now().toString(),
             likedSummaries: [],
             savedSummaries: [],
             likedRepositories: [],
@@ -86,6 +69,7 @@ export default function Auth() {
       }
     } catch (error) {
       setError('An error occurred. Please try again.')
+      console.error('Auth error:', error)
     } finally {
       setIsLoading(false)
     }
@@ -130,6 +114,7 @@ export default function Auth() {
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     className="pl-8"
+                    required
                   />
                 </div>
               </div>
@@ -144,6 +129,22 @@ export default function Auth() {
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   className="pl-8"
+                  required
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="password">Password</Label>
+              <div className="relative">
+                <Lock className="absolute left-2 top-2.5 h-4 w-4 text-orange-500" />
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="Your password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="pl-8"
+                  required
                 />
               </div>
             </div>

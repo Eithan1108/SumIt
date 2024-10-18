@@ -45,13 +45,7 @@ export function JoinRequestDialog({
 
   const handleAccept = async (userId: string) => {
     try {
-      await acceptJoinRequest(community.id, userId, community.admins[0])
-      const updatedCommunity = {
-        ...community,
-        members: [...community.members, userId],
-        pendingMembers: community.pendingMembers?.filter(id => id !== userId) || [],
-        totalMembers: community.totalMembers + 1
-      }
+      const updatedCommunity = await acceptJoinRequest(community.id, userId, community.admins[0])
       onUpdateCommunity(updatedCommunity)
       setPendingUsers(prevUsers => prevUsers.filter(user => user.id !== userId))
     } catch (error) {
@@ -61,11 +55,7 @@ export function JoinRequestDialog({
 
   const handleReject = async (userId: string) => {
     try {
-      await rejectJoinRequest(community.id, userId, community.admins[0])
-      const updatedCommunity = {
-        ...community,
-        pendingMembers: community.pendingMembers?.filter(id => id !== userId) || []
-      }
+      const updatedCommunity = await rejectJoinRequest(community.id, userId, community.admins[0])
       onUpdateCommunity(updatedCommunity)
       setPendingUsers(prevUsers => prevUsers.filter(user => user.id !== userId))
     } catch (error) {
@@ -75,15 +65,16 @@ export function JoinRequestDialog({
 
   const handleAcceptAll = async () => {
     try {
-      await Promise.all(pendingUsers.map(user => acceptJoinRequest(community.id, user.id, community.admins[0])))
-      const updatedCommunity = {
-        ...community,
-        members: [...community.members, ...pendingUsers.map(user => user.id)],
-        pendingMembers: [],
-        totalMembers: community.totalMembers + pendingUsers.length
+      const results = await Promise.all(pendingUsers.map(user => 
+        acceptJoinRequest(community.id, user.id, community.admins[0])
+      ))
+      const updatedCommunity = results[results.length - 1] // Get the last updated community state
+      if (updatedCommunity) {
+        onUpdateCommunity(updatedCommunity)
+        setPendingUsers([])
+      } else {
+        console.error("Failed to get updated community after accepting all requests")
       }
-      onUpdateCommunity(updatedCommunity)
-      setPendingUsers([])
     } catch (error) {
       console.error("Error accepting all join requests:", error)
     }

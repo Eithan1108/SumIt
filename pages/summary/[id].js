@@ -12,7 +12,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import Header from "../../components/Theme/Header"
 import Footer from "../../components/Theme/Footer"
 import OwnerCard from '@/components/Cards/OwnerCard'
-import { fetchSummaryById, fetchUserById, addCommentToSummary, likeSummary, saveSummary, viewSummary } from "@/lib/db"
+import { fetchSummaryById, fetchUserById, addCommentToSummary, likeSummary, saveSummary, viewSummary, fetchCommentsByIds } from "@/lib/db"
+
 
 export default function SummaryPage() {
   const router = useRouter()
@@ -20,6 +21,7 @@ export default function SummaryPage() {
   const [error, setError] = useState(null)
   const [user, setUser] = useState(null)
   const [owner, setOwner] = useState(null)
+  const [comments, setComments] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [searchResult, setSearchResult] = useState(null)
@@ -32,34 +34,45 @@ export default function SummaryPage() {
 
   useEffect(() => {
     const fetchData = async () => {
-      console.log("isReady", router.isReady)
       if (!router.isReady) return;
-
+  
       const { id, userId } = router.query;
       console.log("Route params:", { id, userId });
-
+  
       if (typeof id !== 'string' || typeof userId !== 'string') {
         setError('Invalid URL parameters');
         setIsLoading(false);
         return;
       }
-
+  
       try {
         setIsLoading(true);
         const { summary: updatedSummary, user: updatedUser, owner: updatedOwner } = await viewSummary(id, userId);
         console.log("Viewed summary");
-
+  
         console.log("Fetched data:", { summary: updatedSummary, user: updatedUser, owner: updatedOwner });
-
+  
         if (!updatedSummary || !updatedUser || !updatedOwner) {
           throw new Error('Summary, user, or owner not found');
         }
-
+  
         setSummary(updatedSummary);
         setUser(updatedUser);
         setOwner(updatedOwner);
-        setIsLiked(updatedUser.likedSummaries.includes(updatedSummary.id));
-        setIsSaved(updatedUser.savedSummaries.includes(updatedSummary.id));
+        
+        const initialIsLiked = updatedUser.likedSummaries.includes(updatedSummary.id);
+        console.log('Initial isLiked state:', initialIsLiked);
+        setIsLiked(initialIsLiked);
+        
+        const initialIsSaved = updatedUser.savedSummaries.includes(updatedSummary.id);
+        console.log('Initial isSaved state:', initialIsSaved);
+        setIsSaved(initialIsSaved);
+  
+        console.log('Initial user liked summaries:', updatedUser.likedSummaries);
+
+        // Fetch comments
+        const fetchedComments = await fetchCommentsByIds(updatedSummary.comments);
+        setComments(fetchedComments);
       } catch (err) {
         console.error("Error fetching data:", err);
         setError(err instanceof Error ? err.message : 'An error occurred while fetching data');
@@ -67,9 +80,39 @@ export default function SummaryPage() {
         setIsLoading(false);
       }
     };
-
+  
     fetchData();
   }, [router.isReady, router.query]);
+
+  const handleDownload = async () => {
+    if (summary && summary.fileId) {
+      try {
+        const response = await fetch(`/api/download/${summary.fileId}`);
+        
+        if (!response.ok) {
+          if (response.status === 404) {
+            throw new Error('File not found');
+          }
+          throw new Error('Download failed');
+        }
+
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.style.display = 'none';
+        a.href = url;
+        a.download = summary.fileId; // Use the fileId as the download filename
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+      } catch (error) {
+        console.error('Error downloading file:', error);
+        setError('Failed to download the file. Please try again.');
+      }
+    } else {
+      setError('No file available for download');
+    }
+  };
 
   const handleSearch = () => {
     if (summary) {
@@ -89,10 +132,19 @@ export default function SummaryPage() {
     if (summary && user) {
       try {
         const { summary: updatedSummary, user: updatedUser, owner: updatedOwner } = await likeSummary(summary.id, user.id);
+        console.log('Like operation result:', { updatedSummary, updatedUser, updatedOwner });
+        
         setSummary(updatedSummary);
         setUser(updatedUser);
         setOwner(updatedOwner);
-        setIsLiked(!isLiked);
+        
+        // Check if the summary is now liked by the user
+        const isNowLiked = updatedUser.likedSummaries.includes(updatedSummary.id);
+        console.log('Is summary now liked:', isNowLiked);
+        setIsLiked(isNowLiked);
+  
+        // Log the updated user's liked summaries
+        console.log('Updated user liked summaries:', updatedUser.likedSummaries);
       } catch (err) {
         console.error("Error liking summary:", err);
         setError("Failed to like summary. Please try again.");
@@ -116,7 +168,6 @@ export default function SummaryPage() {
   const handleAddComment = async () => {
     if (newComment.trim() && summary && user) {
       const newCommentObj = {
-        id: Date.now().toString(),
         author: user.name,
         content: newComment.trim(),
         timestamp: new Date().toISOString()
@@ -126,6 +177,9 @@ export default function SummaryPage() {
         setSummary(updatedSummary);
         setNewComment('');
         setIsCommentDialogOpen(false);
+        // Fetch the updated comments
+        const fetchedComments = await fetchCommentsByIds(updatedSummary.comments);
+        setComments(fetchedComments);
       } catch (err) {
         console.error("Error adding comment:", err);
         setError("Failed to add comment. Please try again.");
@@ -195,7 +249,7 @@ export default function SummaryPage() {
                 <span className="flex items-center text-orange-700"><ThumbsUp className="mr-1 h-4 w-4" /> {summary.likes}</span>
                 <span className="flex items-center text-orange-700"><MessageSquare className="mr-1 h-4 w-4" /> {summary.comments.length}</span>
               </div>
-              <Button className="bg-orange-500 hover:bg-orange-600 text-white">
+              <Button onClick={handleDownload} className="bg-orange-500 hover:bg-orange-600 text-white">
                 <Download className="mr-2 h-4 w-4" /> Download Summary
               </Button>
             </div>
@@ -261,37 +315,37 @@ export default function SummaryPage() {
           </CardContent>
         </Card>
         
-<Card className="mb-6">
-      <CardHeader className="pb-2">
-        <CardTitle className="text-2xl font-bold text-orange-700">Owner</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <OwnerCard owner={owner} viewingUserId={user.id} />
-      </CardContent>
-    </Card>
-        
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-2xl font-bold text-orange-600">Comments</CardTitle>
+        <Card className="mb-6">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-2xl font-bold text-orange-700">Owner</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            {summary.comments.map(comment => (
-              <div key={comment.id} className="border border-orange-200 rounded-lg p-4">
-                <p className="text-orange-800 mb-2">{comment.content}</p>
-                <div className="flex items-center justify-between text-sm text-orange-600">
-                  <div className="flex items-center space-x-2">
-                    <Avatar className="w-6 h-6">
-                      <AvatarImage src={`https://api.dicebear.com/6.x/initials/svg?seed=${comment.author}`} />
-                      <AvatarFallback>{comment.author[0]}</AvatarFallback>
-                    </Avatar>
-                    <span>{comment.author}</span>
-                  </div>
-                  <span>{new Date(comment.timestamp).toLocaleString()}</span>
-                </div>
-              </div>
-            ))}
+          <CardContent>
+            <OwnerCard owner={owner} viewingUserId={user.id} />
           </CardContent>
         </Card>
+        
+        <Card>
+        <CardHeader>
+          <CardTitle className="text-2xl font-bold text-orange-600">Comments</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {comments.map(comment => (
+            <div key={comment.id} className="border border-orange-200 rounded-lg p-4">
+              <p className="text-orange-800 mb-2">{comment.content}</p>
+              <div className="flex items-center justify-between text-sm text-orange-600">
+                <div className="flex items-center space-x-2">
+                  <Avatar className="w-6 h-6">
+                    <AvatarImage src={`https://api.dicebear.com/6.x/initials/svg?seed=${comment.author}`} />
+                    <AvatarFallback>{comment.author[0]}</AvatarFallback>
+                  </Avatar>
+                  <span>{comment.author}</span>
+                </div>
+                <span>{new Date(comment.timestamp).toLocaleString()}</span>
+              </div>
+            </div>
+          ))}
+        </CardContent>
+      </Card>
       </main>
 
       {isCommentDialogOpen && (
@@ -302,6 +356,7 @@ export default function SummaryPage() {
             </CardHeader>
             <CardContent>
               <textarea
+                
                 placeholder="Type your comment here..."
                 value={newComment}
                 onChange={(e) => setNewComment(e.target.value)}

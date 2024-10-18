@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { AlertCircle, Folder, Plus, X, Tag, Search } from "lucide-react"
+import { AlertCircle, Folder, Plus, X, Tag, Search, Upload } from "lucide-react"
 import Footer from "../components/Theme/Footer"
 import Header from "../components/Theme/Header"
 import { addSummary, fetchUserById, fetchUserRepositories, fetchAllTags } from '@/lib/db'
@@ -27,6 +27,8 @@ function CreateSummaryContent() {
   const [userRepositories, setUserRepositories] = useState([])
   const [isSubmitting, setIsSubmitting] = useState(false)
   const { addToast } = useToast()
+  const [file, setFile] = useState(null)
+  const fileInputRef = useRef(null)
 
   useEffect(() => {
     const fetchData = async () => {
@@ -67,6 +69,31 @@ function CreateSummaryContent() {
         isPrivate,
         neuronGraph: {}
       }
+
+      let fileId = null;
+      if (file) {
+        const formData = new FormData()
+        formData.append('file', file)
+        formData.append('userId', user.id)
+
+        const uploadResponse = await fetch('/api/upload', {
+          method: 'POST',
+          body: formData,
+        })
+
+        if (!uploadResponse.ok) {
+          const errorData = await uploadResponse.json()
+          throw new Error(errorData.message || 'File upload failed')
+        }
+
+        const uploadedFile = await uploadResponse.json()
+        fileId = uploadedFile.fileId
+      }
+
+      if (fileId) {
+        newSummary.fileId = fileId
+      }
+
       const addedSummary = await addSummary(newSummary, repoId, folderId)
       addToast('Summary created successfully!', 'success');
       router.push(`/dashboard?userId=${user.id}`)
@@ -119,6 +146,16 @@ function CreateSummaryContent() {
 
   const handleRemoveTag = (tagToRemove) => {
     setSelectedTags(selectedTags.filter(tag => tag !== tagToRemove))
+  }
+
+  const handleFileChange = (e) => {
+    if (e.target.files && e.target.files[0]) {
+      setFile(e.target.files[0])
+    }
+  }
+
+  const handleFileUploadClick = () => {
+    fileInputRef.current.click()
   }
 
   const filteredTags = availableTags.filter(tag => 
@@ -247,6 +284,30 @@ function CreateSummaryContent() {
                 </div>
               )}
             </div>
+            <div>
+              <label htmlFor="file-upload" className="block text-lg font-medium text-orange-700 mb-2">Upload File (Optional)</label>
+              <div className="mt-1 flex items-center">
+                <input
+                  ref={fileInputRef}
+                  id="file-upload"
+                  name="file-upload"
+                  type="file"
+                  className="sr-only"
+                  onChange={handleFileChange}
+                />
+                <button
+                  type="button"
+                  onClick={handleFileUploadClick}
+                  className="inline-flex items-center px-4 py-2 border border-orange-300 rounded-md shadow-sm text-sm font-medium text-orange-700 bg-white hover:bg-orange-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500"
+                >
+                  <Upload className="h-5 w-5 mr-2" />
+                  Upload File
+                </button>
+                {file && (
+                  <span className="ml-4 text-sm text-orange-500">{file.name}</span>
+                )}
+              </div>
+            </div>
             <div className="flex items-center space-x-2">
               <input
                 type="checkbox"
@@ -278,10 +339,10 @@ function CreateSummaryContent() {
 
       {isLocationPickerOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+          <div className="bg-white rounded-lg p-6 w-full  max-w-md">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-bold text-orange-700">Select Location</h2>
-              <button onClick={() => setIsLocationPickerOpen(false)} className="text-orange-600 hover:text-orange-800">
+              <button onClick={() => setIsLocationPickerOpen(false)} className="text-orange-600  hover:text-orange-800">
                 <X className="h-6 w-6" />
               </button>
             </div>
@@ -316,7 +377,7 @@ function CreateSummaryContent() {
                       <input
                         type="text"
                         value={newFolderName}
-                        onChange={(e) =>   setNewFolderName(e.target.value)}
+                        onChange={(e) => setNewFolderName(e.target.value)}
                         placeholder="New folder name"
                         className="flex-grow mr-2 px-2 py-1 border border-orange-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
                       />

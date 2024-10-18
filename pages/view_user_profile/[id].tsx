@@ -74,20 +74,25 @@ export default function ViewUserProfile() {
     if (user && viewingUser) {
       try {
         if (isFollowing) {
-          const { follower: updatedFollower, unfollowedUser } = await unfollowUser(user.id, viewingUser.id)
-          setUser(unfollowedUser)
-          setViewingUser(updatedFollower)
+          await unfollowUser(user.id, viewingUser.id);
         } else {
-          const { follower: updatedFollower, followedUser } = await followUser(user.id, viewingUser.id)
-          setUser(followedUser)
-          setViewingUser(updatedFollower)
+          await followUser(user.id, viewingUser.id);
         }
-        setIsFollowing(!isFollowing)
+  
+        // Fetch the latest user data
+        const updatedUser = await fetchUserByUsername(user.username);
+        const updatedViewingUser = await fetchUserById(viewingUser.id);
+  
+        if (updatedUser && updatedViewingUser) {
+          setUser(updatedUser);
+          setViewingUser(updatedViewingUser);
+          setIsFollowing(updatedViewingUser.followingId.includes(updatedUser.id));
+        }
       } catch (error) {
-        console.error(`Failed to ${isFollowing ? 'unfollow' : 'follow'} user:`, error)
+        console.error(`Failed to ${isFollowing ? 'unfollow' : 'follow'} user:`, error);
       }
     }
-  }
+  };
 
   if (isLoading) {
     return <div className="flex justify-center items-center h-screen">Loading...</div>

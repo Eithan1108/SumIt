@@ -277,7 +277,7 @@ export default function CommunityPage() {
               <CardContent>
                 <div className="space-y-4">
                   {filteredMembers.map((member) => (
-                            <OwnerCard owner={member} viewingUserId={member.id} />
+                            <OwnerCard owner={member} viewingUserId={user.id} />
 
                   ))}
                 </div>

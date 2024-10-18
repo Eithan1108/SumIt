@@ -4,6 +4,7 @@ export type UserStatus = 'new' | 'active' | 'inactive'
 export interface User {
   id: string
   name: string
+  password: string
   username: string
   avatar: string
   bio: string
@@ -20,8 +21,14 @@ export interface User {
   savedRepositories: string[]
   followingId: string[]
   followerIds: string[]
-  notifications: Notification[]
-  communities: string[]; // Add this field to store the IDs of communities the user is a member of
+  notificationIds: string[]; // Replace notifications: Notification[]
+  communities: string[];
+  // Add this field to store the IDs of communities the user is a member of
+  
+}
+
+export interface NotificationStore {
+  [id: string]: Notification;
 }
 
 // Notification types
@@ -47,7 +54,7 @@ export interface Summary {
   content: string
   views: number
   likes: number
-  comments: Comment[]
+  comments: string[]
   dateCreated: string
   lastUpdated: string
   author: string
@@ -87,6 +94,7 @@ export interface Repository {
   rootFolder: RepositoryFolder
   collaborators: string[] // Array of user IDs
   pendingCollaborators: string[] // Array of invited user IDs
+  
 }
 
 export interface RepositoryFolder {

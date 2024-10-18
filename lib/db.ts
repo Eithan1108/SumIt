@@ -1,49 +1,72 @@
 // This file contains all database-related operations
-import { User, Community, Summary, Repository, Notification, Comment, NeuronGraph, RepositoryItem, RepositoryFolder } from './types'
-
+import { Upload } from 'lucide-react';
+import { NotificationStore, User, Community, Summary, Repository, Notification, Comment, NeuronGraph, RepositoryItem, RepositoryFolder } from './types'
+import { revalidatePath } from 'next/cache'
+import bcrypt from 'bcryptjs'
 
   
   const mockApiUrl = 'http://localhost:5000/users';
   
   export async function fetchUsers(): Promise<User[]> {
-    const response = await fetch(mockApiUrl);
+    const response = await fetch(mockApiUrl)
     if (!response.ok) {
-      throw new Error('Failed to fetch user data');
+      throw new Error('Failed to fetch user data')
     }
-    const userData = await response.json();
-    return Array.isArray(userData) ? userData : Object.values(userData);
+    const userData = await response.json()
+    return Array.isArray(userData) ? userData : Object.values(userData)
   }
   
   export async function createUser(newUser: Omit<User, 'id'>): Promise<User> {
+    const salt = await bcrypt.genSalt(10)
+    const hashedPassword = await bcrypt.hash(newUser.password, salt)
+  
+    const userToCreate = {
+      ...newUser,
+      password: hashedPassword,
+      id: Date.now().toString(),
+    }
+  
     const response = await fetch(mockApiUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(newUser),
-    });
+      body: JSON.stringify(userToCreate),
+    })
     if (!response.ok) {
-      throw new Error('Failed to create new user');
+      throw new Error('Failed to create new user')
     }
-    return await response.json();
+    return await response.json()
   }
   
-  export function findUserByUsername(users: User[], username: string): User | undefined {
-    return users.find((user) => user.username === username);
+  export async function findUserByUsername(username: string): Promise<User | undefined> {
+    const users = await fetchUsers()
+    return users.find((user) => user.username === username)
   }
   
-  export function isUsernameTaken(users: User[], username: string): boolean {
-    return users.some((user) => user.username === username);
+  export async function isUsernameTaken(username: string): Promise<boolean> {
+    const user = await findUserByUsername(username)
+    return !!user
+  }
+  
+  export async function verifyUser(username: string, password: string): Promise<User | null> {
+    const user = await findUserByUsername(username)
+    if (!user) return null
+  
+    const isMatch = await bcrypt.compare(password, user.password)
+    return isMatch ? user : null
   }
   
   export async function fetchUserById(userId: string): Promise<User | null> {
     try {
-      const users = await fetchUsers();
-      const foundUser = users.find((u) => u.id === userId);
-      return foundUser || null;
+      const response = await fetch(`${mockApiUrl}/${userId}`)
+      if (!response.ok) {
+        throw new Error('Failed to fetch user data')
+      }
+      return await response.json()
     } catch (error) {
-      console.error('Failed to fetch user data:', error);
-      throw new Error('Failed to fetch user data');
+      console.error('Failed to fetch user data:', error)
+      return null
     }
   }
 
@@ -199,140 +222,226 @@ import { User, Community, Summary, Repository, Notification, Comment, NeuronGrap
   }
 
   export async function updateUserWithCascade(updatedUser: User): Promise<User> {
-  try {
-    // Update user
-    const userResponse = await fetch(`${mockApiUrl}/${updatedUser.id}`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(updatedUser),
-    });
-
-    if (!userResponse.ok) {
-      throw new Error('Failed to update user');
-    }
-
-    // Update summaries
-    const summariesResponse = await fetch('http://localhost:5000/summeries');
-    if (!summariesResponse.ok) {
-      throw new Error('Failed to fetch summaries');
-    }
-    const summaries: Summary[] = await summariesResponse.json();
-    
-    const updatedSummaries = summaries.map(summary => {
-      if (summary.owner === updatedUser.id) {
-        return { ...summary, author: updatedUser.name };
-      }
-      return summary;
-    });
-
-    await Promise.all(updatedSummaries.map(summary => 
-      fetch(`http://localhost:5000/summeries/${summary.id}`, {
+    try {
+      // Update user
+      const userResponse = await fetch(`${mockApiUrl}/${updatedUser.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(summary),
-      })
-    ));
-
-    // Update repositories
-    const reposResponse = await fetch('http://localhost:5000/repositories');
-    if (!reposResponse.ok) {
-      throw new Error('Failed to fetch repositories');
-    }
-    const repositories: Repository[] = await reposResponse.json();
-    
-    const updatedRepositories = repositories.map(repo => {
-      if (repo.owner === updatedUser.id) {
-        return { ...repo, owner: updatedUser.id };
+        body: JSON.stringify(updatedUser),
+      });
+  
+      if (!userResponse.ok) {
+        throw new Error('Failed to update user');
       }
-      return repo;
-    });
-
-    await Promise.all(updatedRepositories.map(repo => 
-      fetch(`http://localhost:5000/repositories/${repo.id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(repo),
-      })
-    ));
-
-    // Update comments (assuming comments are stored within summaries)
-    const updatedSummariesWithComments = updatedSummaries.map(summary => {
-      const updatedComments = summary.comments.map(comment => {
+  
+      // Update summaries
+      const summariesResponse = await fetch('http://localhost:5000/summeries');
+      if (!summariesResponse.ok) {
+        throw new Error('Failed to fetch summaries');
+      }
+      const summaries: Summary[] = await summariesResponse.json();
+      
+      const updatedSummaries = summaries.map(summary => {
+        if (summary.owner === updatedUser.id) {
+          return { ...summary, author: updatedUser.name };
+        }
+        return summary;
+      });
+  
+      await Promise.all(updatedSummaries.map(summary => 
+        fetch(`http://localhost:5000/summeries/${summary.id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(summary),
+        })
+      ));
+  
+      // Update repositories
+      const reposResponse = await fetch('http://localhost:5000/repositories');
+      if (!reposResponse.ok) {
+        throw new Error('Failed to fetch repositories');
+      }
+      const repositories: Repository[] = await reposResponse.json();
+      
+      const updatedRepositories = repositories.map(repo => {
+        if (repo.owner === updatedUser.id) {
+          return { ...repo, owner: updatedUser.id };
+        }
+        return repo;
+      });
+  
+      await Promise.all(updatedRepositories.map(repo => 
+        fetch(`http://localhost:5000/repositories/${repo.id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(repo),
+        })
+      ));
+  
+      // Update comments
+      const commentsResponse = await fetch('http://localhost:5000/comments');
+      if (!commentsResponse.ok) {
+        throw new Error('Failed to fetch comments');
+      }
+      const comments: Comment[] = await commentsResponse.json();
+  
+      const updatedComments = comments.map(comment => {
         if (comment.author === updatedUser.id) {
           return { ...comment, author: updatedUser.name };
         }
         return comment;
       });
-      return { ...summary, comments: updatedComments };
-    });
-
-    await Promise.all(updatedSummariesWithComments.map(summary => 
-      fetch(`http://localhost:5000/summeries/${summary.id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(summary),
-      })
-    ));
-
-    console.log("User updated successfully with cascading changes");
-    return updatedUser;
-  } catch (error) {
-    console.error("Error updating user with cascade:", error);
-    throw error;
-  }
+  
+      await Promise.all(updatedComments.map(comment => 
+        fetch(`http://localhost:5000/comments/${comment.id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(comment),
+        })
+      ));
+  
+      console.log("User updated successfully with cascading changes");
+      return updatedUser;
+    } catch (error) {
+      console.error("Error updating user with cascade:", error);
+      throw error;
+    }
   }
 
   export async function updateUser(updatedUser: User): Promise<User> {
+    const response = await fetch(`${mockApiUrl}/${updatedUser.id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(updatedUser),
+    })
+    if (!response.ok) {
+      throw new Error('Failed to update user')
+    }
+    return await response.json()
+  }
+
+  async function getSummaryWithFullComments(summaryId: string) {
+    const summary = await fetchSummaryById(summaryId);
+    if (summary) {
+      const fullComments = await fetchCommentsByIds(summary.comments);
+      return { ...summary, fullComments };
+    }
+    return null;
+  }
+
+  export async function changePassword(userId: string, oldPassword: string, newPassword: string): Promise<boolean> {
+    const user = await fetchUserById(userId)
+    if (!user) throw new Error('User not found')
+  
+    const isMatch = await bcrypt.compare(oldPassword, user.password)
+    if (!isMatch) throw new Error('Incorrect old password')
+  
+    const salt = await bcrypt.genSalt(10)
+    const hashedPassword = await bcrypt.hash(newPassword, salt)
+  
+    user.password = hashedPassword
+  
+    await updateUser(user)
+    return true
+  }
+
+  export async function fetchCommentsByIds(commentIds: string[]): Promise<Comment[]> {
     try {
-      return await updateUserWithCascade(updatedUser);
+      // Fetch all comments
+      const response = await fetch('http://localhost:5000/comments');
+      if (!response.ok) {
+        throw new Error('Failed to fetch comments');
+      }
+      const allComments: Comment[] = await response.json();
+      
+      // Filter comments based on the provided comment IDs
+      const filteredComments = allComments.filter(comment => commentIds.includes(comment.id));
+      
+      // If any comment IDs were not found, log a warning
+      const foundIds = filteredComments.map(comment => comment.id);
+      const missingIds = commentIds.filter(id => !foundIds.includes(id));
+      if (missingIds.length > 0) {
+        console.warn(`Some comment IDs were not found: ${missingIds.join(', ')}`);
+      }
+      
+      return filteredComments;
     } catch (error) {
-      console.error("Failed to update user:", error);
+      console.error('Error fetching comments by IDs:', error);
       throw error;
     }
   }
 
   export async function fetchSummaryById(id: string): Promise<Summary | null> {
     try {
-      const response = await fetch('http://localhost:5000/summeries');
+      const response = await fetch(`http://localhost:5000/summeries/${id}`);
       if (!response.ok) {
-        throw new Error('Failed to fetch summaries');
+        if (response.status === 404) {
+          return null;
+        }
+        throw new Error('Failed to fetch summary');
       }
-      const summaries: Summary[] = await response.json();
-      return summaries.find(summary => summary.id === id) || null;
+      const summary: Summary = await response.json();
+      
+      // The summary already contains the comment IDs, so we don't need to do anything else
+      return summary;
     } catch (error) {
       console.error('Error fetching summary by ID:', error);
       throw error;
     }
   }
 
-  export async function addCommentToSummary(summaryId: string, newComment: Comment): Promise<Summary> {
+  export async function addCommentToSummary(summaryId: string, newComment: Omit<Comment, 'id'>): Promise<Summary> {
     try {
-      const response = await fetch(`http://localhost:5000/summeries/${summaryId}`);
-      if (!response.ok) {
+      const summaryResponse = await fetch(`http://localhost:5000/summeries/${summaryId}`);
+      if (!summaryResponse.ok) {
         throw new Error('Failed to fetch summary');
       }
-      const summary: Summary = await response.json();
+      const summary: Summary = await summaryResponse.json();
   
-      summary.comments.push(newComment);
+      // Create a new comment
+      const commentId = Date.now().toString();
+      const fullComment: Comment = { ...newComment, id: commentId };
   
-      // Fetch the summary owner
-      const ownerResponse = await fetch(`http://localhost:5000/users/${summary.owner}`);
-      if (!ownerResponse.ok) {
-        throw new Error('Failed to fetch summary owner data');
+      // Add the new comment to the comments collection
+      const addCommentResponse = await fetch('http://localhost:5000/comments', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(fullComment),
+      });
+  
+      if (!addCommentResponse.ok) {
+        throw new Error('Failed to add new comment');
       }
-      const owner: User = await ownerResponse.json();
   
-      // Create a new notification for the owner
-      const newNotification: Notification = {
-        id: Date.now().toString(),
+      // Update the summary with the new comment ID
+      summary.comments.push(commentId);
+  
+      const updateSummaryResponse = await fetch(`http://localhost:5000/summeries/${summaryId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(summary),
+      });
+  
+      if (!updateSummaryResponse.ok) {
+        throw new Error('Failed to update summary data');
+      }
+  
+      // Create notification for the summary owner
+      const newNotification: Omit<Notification, 'id'> = {
         date: new Date().toISOString(),
         read: false,
         content: `${newComment.author} commented on your summary "${summary.title}"`,
@@ -341,28 +450,7 @@ import { User, Community, Summary, Repository, Notification, Comment, NeuronGrap
         type: 'comment'
       };
   
-      owner.notifications.push(newNotification);
-  
-      const [updateSummaryResponse, updateOwnerResponse] = await Promise.all([
-        fetch(`http://localhost:5000/summeries/${summaryId}`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(summary),
-        }),
-        fetch(`http://localhost:5000/users/${summary.owner}`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(owner),
-        })
-      ]);
-  
-      if (!updateSummaryResponse.ok || !updateOwnerResponse.ok) {
-        throw new Error('Failed to update summary or owner data');
-      }
+      await addNotification(summary.owner, newNotification);
   
       return await updateSummaryResponse.json();
     } catch (error) {
@@ -373,6 +461,8 @@ import { User, Community, Summary, Repository, Notification, Comment, NeuronGrap
 
   export async function likeSummary(summaryId: string, userId: string): Promise<{ summary: Summary; user: User; owner: User }> {
     try {
+      console.log(`Attempting to like/unlike summary ${summaryId} by user ${userId}`);
+  
       const [summaryResponse, userResponse] = await Promise.all([
         fetch(`http://localhost:5000/summeries/${summaryId}`),
         fetch(`http://localhost:5000/users/${userId}`)
@@ -383,34 +473,38 @@ import { User, Community, Summary, Repository, Notification, Comment, NeuronGrap
       }
   
       const summary: Summary = await summaryResponse.json();
-      const user: User = await userResponse.json();
+      let user: User = await userResponse.json();
   
-      // Fetch the summary owner
+      console.log('Fetched summary:', summary);
+      console.log('Fetched user:', user);
+  
       const ownerResponse = await fetch(`http://localhost:5000/users/${summary.owner}`);
       if (!ownerResponse.ok) {
         throw new Error('Failed to fetch summary owner data');
       }
-      const owner: User = await ownerResponse.json();
+      let owner: User = await ownerResponse.json();
+  
+      console.log('Fetched owner:', owner);
   
       const isLiked = user.likedSummaries.includes(summaryId);
       const isOwnSummary = userId === summary.owner;
   
+      console.log('Is liked:', isLiked);
+      console.log('Is own summary:', isOwnSummary);
+  
       if (isLiked) {
-        // Unlike the summary
         if (!isOwnSummary) {
           summary.likes--;
           owner.totalLikes--;
         }
         user.likedSummaries = user.likedSummaries.filter(id => id !== summaryId);
+        console.log('Summary unliked');
       } else {
-        // Like the summary
         if (!isOwnSummary) {
           summary.likes++;
           owner.totalLikes++;
   
-          // Create a new notification for the owner
-          const newNotification: Notification = {
-            id: Date.now().toString(),
+          const newNotification: Omit<Notification, 'id'> = {
             date: new Date().toISOString(),
             read: false,
             content: `${user.name} liked your summary "${summary.title}"`,
@@ -419,10 +513,28 @@ import { User, Community, Summary, Repository, Notification, Comment, NeuronGrap
             type: 'like'
           };
   
-          owner.notifications.push(newNotification);
+          console.log('Creating new notification:', newNotification);
+  
+          try {
+            const notificationId = await addNotification(summary.owner, newNotification);
+            console.log(`Notification created with ID: ${notificationId}`);
+            
+            // Fetch the updated owner data after adding the notification
+            const updatedOwnerResponse = await fetch(`http://localhost:5000/users/${summary.owner}`);
+            if (updatedOwnerResponse.ok) {
+              owner = await updatedOwnerResponse.json();
+              console.log('Updated owner after notification:', owner);
+            }
+          } catch (notificationError) {
+            console.error('Error creating notification:', notificationError);
+            // Continue with the like process even if notification fails
+          }
         }
         user.likedSummaries.push(summaryId);
+        console.log('Summary liked');
       }
+  
+      console.log('Updated user liked summaries:', user.likedSummaries);
   
       const [updatedSummaryResponse, updatedUserResponse, updatedOwnerResponse] = await Promise.all([
         fetch(`http://localhost:5000/summeries/${summaryId}`, {
@@ -452,10 +564,18 @@ import { User, Community, Summary, Repository, Notification, Comment, NeuronGrap
         throw new Error('Failed to update summary, user, or owner data');
       }
   
+      const updatedSummary = await updatedSummaryResponse.json();
+      const updatedUser = await updatedUserResponse.json();
+      const updatedOwner = await updatedOwnerResponse.json();
+  
+      console.log('Updated summary:', updatedSummary);
+      console.log('Updated user:', updatedUser);
+      console.log('Updated owner:', updatedOwner);
+  
       return {
-        summary: await updatedSummaryResponse.json(),
-        user: await updatedUserResponse.json(),
-        owner: await updatedOwnerResponse.json()
+        summary: updatedSummary,
+        user: updatedUser,
+        owner: updatedOwner
       };
     } catch (error) {
       console.error('Error liking/unliking summary:', error);
@@ -878,9 +998,8 @@ import { User, Community, Summary, Repository, Notification, Comment, NeuronGrap
       // Create notifications for followers
       const followerNotifications = allUsers
         .filter(user => user.followingId.includes(newSummary.owner))
-        .map(follower => {
-          const notification: Notification = {
-            id: Date.now().toString(),
+        .map(async (follower) => {
+          const newNotification: Omit<Notification, 'id'> = {
             date: new Date().toISOString(),
             read: false,
             content: `${userData.name} posted a new summary: "${addedSummary.title}"`,
@@ -888,14 +1007,7 @@ import { User, Community, Summary, Repository, Notification, Comment, NeuronGrap
             sender: userData.username,
             type: 'summary'
           };
-          follower.notifications.push(notification);
-          return fetch(`http://localhost:5000/users/${follower.id}`, {
-            method: 'PUT',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(follower),
-          });
+          await addNotification(follower.id, newNotification);
         });
   
       const updatePromises = [
@@ -1029,6 +1141,8 @@ export async function fetchUserByUsername(username: string): Promise<User | null
 
 export async function followUser(userId: string, followerId: string): Promise<{ follower: User; followedUser: User }> {
   try {
+    console.log(`Attempting to follow user ${userId} by follower ${followerId}`);
+
     const [userResponse, followerResponse] = await Promise.all([
       fetch(`http://localhost:5000/users/${userId}`),
       fetch(`http://localhost:5000/users/${followerId}`)
@@ -1038,55 +1152,84 @@ export async function followUser(userId: string, followerId: string): Promise<{ 
       throw new Error('Failed to fetch user data');
     }
 
-    const user: User = await userResponse.json();
-    const follower: User = await followerResponse.json();
+    let user: User = await userResponse.json();
+    let follower: User = await followerResponse.json();
 
-    // Update follower's data
-    follower.following++;
-    if (!follower.followingId.includes(userId)) {
-      follower.followingId.push(userId);
+    console.log('User to be followed:', user);
+    console.log('Follower:', follower);
+
+    // Check if already following
+    if (follower.followingId.includes(userId)) {
+      console.log('Already following this user');
+      return { follower, followedUser: user };
     }
 
-    // Update user's data
-    user.followers++;
-    if (!user.followerIds.includes(followerId)) {
-      user.followerIds.push(followerId);
-    }
+    follower.following = (follower.following || 0) + 1;
+    follower.followingId = Array.isArray(follower.followingId) 
+      ? [...follower.followingId, userId] 
+      : [userId];
 
-    // Create a new notification
-    const newNotification: Notification = {
-      id: Date.now().toString(),
+    user.followers = (user.followers || 0) + 1;
+    user.followerIds = Array.isArray(user.followerIds) 
+      ? [...user.followerIds, followerId] 
+      : [followerId];
+
+    console.log('Updated user:', user);
+    console.log('Updated follower:', follower);
+
+    const newNotification: Omit<Notification, 'id'> = {
       date: new Date().toISOString(),
       read: false,
       content: `${follower.name} started following you!`,
       link: `/profile/${follower.username}`,
       sender: follower.username,
-      type: 'follow'  // New field
+      type: 'follow'
     };
 
-    user.notifications.push(newNotification);
+    console.log('Creating new notification:', newNotification);
 
-    // Update both users in the database
+    const notificationId = await addNotification(userId, newNotification);
+    console.log(`Notification created with ID: ${notificationId}`);
+
+    // Ensure the notification is added to the user's notificationIds array
+    user.notificationIds = Array.isArray(user.notificationIds)
+      ? [...user.notificationIds, notificationId]
+      : [notificationId];
+
+    // Update both user and follower in the database
     const [updateUserResponse, updateFollowerResponse] = await Promise.all([
       fetch(`http://localhost:5000/users/${userId}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(user),
       }),
       fetch(`http://localhost:5000/users/${followerId}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(follower),
       })
     ]);
 
     if (!updateUserResponse.ok || !updateFollowerResponse.ok) {
-      throw new Error('Failed to update user data');
+      throw new Error('Failed to update user or follower data');
     }
+
+    // Fetch the final updated user and follower data
+    const [finalUserResponse, finalFollowerResponse] = await Promise.all([
+      fetch(`http://localhost:5000/users/${userId}`),
+      fetch(`http://localhost:5000/users/${followerId}`)
+    ]);
+
+    if (!finalUserResponse.ok || !finalFollowerResponse.ok) {
+      throw new Error('Failed to fetch final updated user or follower data');
+    }
+
+    user = await finalUserResponse.json();
+    follower = await finalFollowerResponse.json();
+
+    console.log(`User ${followerId} successfully followed user ${userId}`);
+    console.log('Final updated user:', user);
+    console.log('Final updated follower:', follower);
 
     return { follower, followedUser: user };
   } catch (error) {
@@ -1148,45 +1291,40 @@ export async function unfollowUser(userId: string, followerId: string): Promise<
 
 export async function inviteCollaborator(repoId: string, username: string): Promise<Repository> {
   // Fetch the repository
-  const repo = await fetchRepositoryById(repoId)
+  const repo = await fetchRepositoryById(repoId);
   if (!repo) {
-    throw new Error('Repository not found')
+    throw new Error('Repository not found');
   }
 
   // Fetch the user to be invited
-  const user = await fetchUserByUsername(username)
+  const user = await fetchUserByUsername(username);
   if (!user) {
-    throw new Error('User not found')
+    throw new Error('User not found');
   }
 
   // Check if the user is already a collaborator or has a pending invitation
   if (repo.collaborators.includes(user.id) || repo.pendingCollaborators.includes(user.id)) {
-    throw new Error('User is already a collaborator or has a pending invitation')
+    throw new Error('User is already a collaborator or has a pending invitation');
   }
 
   // Add the user to pending collaborators
-  const updatedPendingCollaborators = [...repo.pendingCollaborators, user.id]
-  const updatedRepo = await updateRepository(repoId, { pendingCollaborators: updatedPendingCollaborators })
+  const updatedPendingCollaborators = [...repo.pendingCollaborators, user.id];
+  const updatedRepo = await updateRepository(repoId, { pendingCollaborators: updatedPendingCollaborators });
 
   // Create a notification for the invited user
-  const notification: Notification = {
-    id: Date.now().toString(),
+  const newNotification: Omit<Notification, 'id'> = {
     type: 'collaboration_invite',
     content: `You've been invited to collaborate on the repository "${repo.name}"`,
     date: new Date().toISOString(),
     read: false,
     sender: repo.owner,
     link: `/collaboration-request/${repoId}?userId=${user.id}`
-  }
+  };
 
-  // Add the notification to the user's notifications
-  const updatedUser: User = {
-    ...user,
-    notifications: [...user.notifications, notification]
-  }
-  await updateUser(updatedUser)
+  // Add the notification using the new centralized system
+  await addNotification(user.id, newNotification);
 
-  return updatedRepo
+  return updatedRepo;
 }
 
 export async function removeCollaborator(repoId: string, userId: string): Promise<Repository> {
@@ -1234,6 +1372,20 @@ export async function fetchCollaborationRequest(repoId: string, userId: string):
     throw new Error('Inviter not found')
   }
   return { repository: repo, inviter }
+}
+
+export async function fetchComments(commentIds: string[]): Promise<Comment[]> {
+  try {
+    const response = await fetch('http://localhost:5000/comments');
+    if (!response.ok) {
+      throw new Error('Failed to fetch comments');
+    }
+    const allComments: Comment[] = await response.json();
+    return allComments.filter(comment => commentIds.includes(comment.id));
+  } catch (error) {
+    console.error('Error fetching comments:', error);
+    throw error;
+  }
 }
 
 export async function fetchCommunities(): Promise<Community[]> {
@@ -1433,8 +1585,10 @@ export async function requestToJoinCommunity(userId: string, communityId: string
   }
 }
 
-export async function acceptJoinRequest(communityId: string, requesterId: string, adminId: string): Promise<void> {
+export async function acceptJoinRequest(communityId: string, requesterId: string, adminId: string): Promise<Community> {
   try {
+    console.log(`Accepting join request for community ${communityId} from user ${requesterId} by admin ${adminId}`);
+
     const [communityResponse, requesterResponse] = await Promise.all([
       fetch(`http://localhost:5000/communities/${communityId}`),
       fetch(`http://localhost:5000/users/${requesterId}`)
@@ -1444,20 +1598,32 @@ export async function acceptJoinRequest(communityId: string, requesterId: string
       throw new Error('Failed to fetch community or requester data');
     }
 
-    const community: Community = await communityResponse.json();
-    const requester: User = await requesterResponse.json();
+    let community: Community = await communityResponse.json();
+    let requester: User = await requesterResponse.json();
+
+    console.log('Community before update:', community);
+    console.log('Requester before update:', requester);
 
     // Remove requester from pendingMembers and add to members
     community.pendingMembers = community.pendingMembers?.filter(id => id !== requesterId) || [];
-    community.members.push(requesterId);
-    community.totalMembers += 1;
+    if (!community.members.includes(requesterId)) {
+      community.members.push(requesterId);
+      community.totalMembers += 1;
+    }
 
     // Add community to requester's communities
-    requester.communities.push(communityId);
+    if (!requester.communities) {
+      requester.communities = [];
+    }
+    if (!requester.communities.includes(communityId)) {
+      requester.communities.push(communityId);
+    }
+
+    console.log('Community after update:', community);
+    console.log('Requester after update:', requester);
 
     // Create a notification for the requester
-    const notification: Notification = {
-      id: Date.now().toString(),
+    const newNotification: Omit<Notification, 'id'> = {
       type: 'join_accepted',
       content: `Your request to join ${community.name} has been accepted.`,
       date: new Date().toISOString(),
@@ -1465,10 +1631,25 @@ export async function acceptJoinRequest(communityId: string, requesterId: string
       sender: adminId,
       link: `/community/${communityId}`
     };
-    requester.notifications.push(notification);
+
+    console.log('Creating new notification:', newNotification);
+
+    // Add the notification using the new centralized system
+    const notificationId = await addNotification(requesterId, newNotification);
+    console.log(`Notification created with ID: ${notificationId}`);
+
+    // Ensure the requester's notificationIds array is initialized
+    if (!requester.notificationIds) {
+      requester.notificationIds = [];
+    }
+
+    // Add the new notification ID to the requester's notificationIds array
+    requester.notificationIds.push(notificationId);
+
+    console.log('Requester after adding notification:', requester);
 
     // Update both community and requester in the database
-    await Promise.all([
+    const [updatedCommunityResponse, updatedRequesterResponse] = await Promise.all([
       fetch(`http://localhost:5000/communities/${communityId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -1480,32 +1661,52 @@ export async function acceptJoinRequest(communityId: string, requesterId: string
         body: JSON.stringify(requester),
       })
     ]);
+
+    if (!updatedCommunityResponse.ok || !updatedRequesterResponse.ok) {
+      throw new Error('Failed to update community or requester data');
+    }
+
+    const updatedCommunity: Community = await updatedCommunityResponse.json();
+    const updatedRequester: User = await updatedRequesterResponse.json();
+
+    console.log('Final updated community:', updatedCommunity);
+    console.log('Final updated requester:', updatedRequester);
+
+    // Verify that the notification ID was added to the user's notificationIds
+    if (!updatedRequester.notificationIds.includes(notificationId)) {
+      console.error('Notification ID was not added to user\'s notificationIds array');
+      throw new Error('Failed to add notification ID to user\'s notificationIds array');
+    }
+
+    console.log('Join request accepted successfully');
+    return updatedCommunity;
   } catch (error) {
     console.error('Error accepting join request:', error);
     throw error;
   }
 }
 
-export async function rejectJoinRequest(communityId: string, requesterId: string, adminId: string): Promise<void> {
+export async function rejectJoinRequest(communityId: string, requesterId: string, adminId: string): Promise<Community> {
   try {
-    const [communityResponse, requesterResponse] = await Promise.all([
-      fetch(`http://localhost:5000/communities/${communityId}`),
-      fetch(`http://localhost:5000/users/${requesterId}`)
-    ]);
+    console.log(`Rejecting join request for community ${communityId} from user ${requesterId} by admin ${adminId}`);
 
-    if (!communityResponse.ok || !requesterResponse.ok) {
-      throw new Error('Failed to fetch community or requester data');
+    const communityResponse = await fetch(`http://localhost:5000/communities/${communityId}`);
+
+    if (!communityResponse.ok) {
+      throw new Error('Failed to fetch community data');
     }
 
-    const community: Community = await communityResponse.json();
-    const requester: User = await requesterResponse.json();
+    let community: Community = await communityResponse.json();
+
+    console.log('Community before update:', community);
 
     // Remove requester from pendingMembers
     community.pendingMembers = community.pendingMembers?.filter(id => id !== requesterId) || [];
 
+    console.log('Community after update:', community);
+
     // Create a notification for the requester
-    const notification: Notification = {
-      id: Date.now().toString(),
+    const newNotification: Omit<Notification, 'id'> = {
       type: 'join_rejected',
       content: `Your request to join ${community.name} has been rejected.`,
       date: new Date().toISOString(),
@@ -1513,21 +1714,28 @@ export async function rejectJoinRequest(communityId: string, requesterId: string
       sender: adminId,
       link: `/community/${communityId}`
     };
-    requester.notifications.push(notification);
 
-    // Update both community and requester in the database
-    await Promise.all([
-      fetch(`http://localhost:5000/communities/${communityId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(community),
-      }),
-      fetch(`http://localhost:5000/users/${requesterId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(requester),
-      })
-    ]);
+    console.log('Creating new notification:', newNotification);
+
+    // Add the notification using the new centralized system
+    const notificationId = await addNotification(requesterId, newNotification);
+    console.log(`Notification created with ID: ${notificationId}`);
+
+    // Update community in the database
+    const updatedCommunityResponse = await fetch(`http://localhost:5000/communities/${communityId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(community),
+    });
+
+    if (!updatedCommunityResponse.ok) {
+      throw new Error('Failed to update community data');
+    }
+
+    const updatedCommunity: Community = await updatedCommunityResponse.json();
+
+    console.log('Join request rejected successfully');
+    return updatedCommunity;
   } catch (error) {
     console.error('Error rejecting join request:', error);
     throw error;
@@ -1655,6 +1863,143 @@ export async function addRepository(newRepo: Omit<Repository, 'id' | 'collaborat
     return createdRepo;
   } catch (error) {
     console.error('Error creating new repository:', error);
+    throw error;
+  }
+}
+
+export async function fetchNotifications(notificationIds: string[]): Promise<Notification[]> {
+  try {
+    const response = await fetch('http://localhost:5000/notifications');
+    if (!response.ok) {
+      throw new Error('Failed to fetch notifications');
+    }
+    const allNotifications: Notification[] = await response.json();
+    
+    // Filter the notifications based on the provided IDs
+    const userNotifications = allNotifications.filter(notification => 
+      notificationIds.includes(notification.id)
+    );
+
+    return userNotifications;
+  } catch (error) {
+    console.error('Error fetching notifications:', error);
+    return []; // Return an empty array instead of throwing an error
+  }
+}
+
+export async function addNotification(userId: string, notificationData: Omit<Notification, 'id'>): Promise<string> {
+  try {
+    console.log(`Adding notification for user ${userId}:`, notificationData);
+
+    const notificationId = Date.now().toString();
+    const newNotification: Notification = {
+      id: notificationId,
+      ...notificationData
+    };
+
+    // Add the new notification to the notifications store
+    const notificationResponse = await fetch('http://localhost:5000/notifications', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(newNotification),
+    });
+
+    if (!notificationResponse.ok) {
+      throw new Error(`Failed to add notification to store: ${notificationResponse.statusText}`);
+    }
+
+    console.log('Notification added to store:', newNotification);
+
+    // Fetch the current user data
+    const userResponse = await fetch(`http://localhost:5000/users/${userId}`);
+    if (!userResponse.ok) {
+      throw new Error(`Failed to fetch user data: ${userResponse.statusText}`);
+    }
+    let user: User = await userResponse.json();
+
+    console.log('User before update:', user);
+
+    // Update the notificationIds array
+    if (!user.notificationIds) {
+      user.notificationIds = [];
+    }
+    user.notificationIds.push(notificationId);
+
+    console.log('User after update:', user);
+
+    // Update the user object in the database
+    const updateResponse = await fetch(`http://localhost:5000/users/${userId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(user),
+    });
+
+    if (!updateResponse.ok) {
+      throw new Error(`Failed to update user notifications: ${updateResponse.statusText}`);
+    }
+
+    console.log('User updated in database');
+
+    // Fetch the updated user data to confirm the change
+    const confirmedUserResponse = await fetch(`http://localhost:5000/users/${userId}`);
+    if (!confirmedUserResponse.ok) {
+      throw new Error(`Failed to fetch updated user data: ${confirmedUserResponse.statusText}`);
+    }
+    user = await confirmedUserResponse.json();
+
+    console.log('Confirmed user after update:', user);
+
+    if (!user.notificationIds.includes(notificationId)) {
+      throw new Error('Notification ID was not added to user\'s notificationIds array');
+    }
+
+    console.log(`Notification added successfully: ${notificationId}`);
+    return notificationId;
+  } catch (error) {
+    console.error('Error adding notification:', error);
+    throw error;
+  }
+}
+
+
+export async function markNotificationAsRead(notificationId: string): Promise<Notification> {
+  try {
+    console.log(`Attempting to mark notification ${notificationId} as read`);
+
+    // First, fetch the current notification
+    const fetchResponse = await fetch(`http://localhost:5000/notifications/${notificationId}`);
+    if (!fetchResponse.ok) {
+      throw new Error(`Failed to fetch notification: ${fetchResponse.statusText}`);
+    }
+    const notification: Notification = await fetchResponse.json();
+    console.log('Current notification:', notification);
+
+    // Update the notification's read status
+    notification.read = true;
+
+    // Send the update request
+    const updateResponse = await fetch(`http://localhost:5000/notifications/${notificationId}`, {
+      method: 'PUT', // Use PUT instead of PATCH for full resource update
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(notification),
+    });
+
+    if (!updateResponse.ok) {
+      throw new Error(`Failed to update notification: ${updateResponse.statusText}`);
+    }
+
+    const updatedNotification: Notification = await updateResponse.json();
+    console.log('Updated notification:', updatedNotification);
+
+    // Verify that the notification was actually marked as read
+    if (!updatedNotification.read) {
+      throw new Error('Notification was not successfully marked as read');
+    }
+
+    console.log(`Successfully marked notification ${notificationId} as read`);
+    return updatedNotification;
+  } catch (error) {
+    console.error('Error marking notification as read:', error);
     throw error;
   }
 }

@@ -5,7 +5,7 @@ import { useState, useEffect, ChangeEvent, FormEvent } from 'react'
 import { Button } from "@/components/ui/button"
 import { Input as BaseInput } from "@/components/ui/input"
 import { BookOpen, Search, Bell, User } from "lucide-react"
-import { fetchUserById } from "@/lib/db"
+import { fetchUserById, fetchNotifications } from "@/lib/db"
 
 interface HeaderProps {
   onSearch: (searchTerm: string) => void;
@@ -21,11 +21,6 @@ interface Notification {
   sender: string;
 }
 
-interface User {
-  id: string;
-  notifications: Notification[];
-}
-
 // Custom Input component that accepts the props we need
 const Input = ({ ...props }: React.InputHTMLAttributes<HTMLInputElement>) => {
   return <BaseInput {...props} />;
@@ -36,12 +31,13 @@ export default function Header({ onSearch, userId}: HeaderProps) {
   const [unreadNotifications, setUnreadNotifications] = useState<Notification[]>([])
 
   useEffect(() => {
-    const fetchNotifications = async () => {
+    const fetchUserNotifications = async () => {
       if (userId) {
         try {
           const userData = await fetchUserById(userId)
-          if (userData) {
-            const unreadNotifs = userData.notifications.filter(notif => !notif.read)
+          if (userData && userData.notificationIds) {
+            const notifications = await fetchNotifications(userData.notificationIds)
+            const unreadNotifs = notifications.filter(notif => !notif.read)
             setUnreadNotifications(unreadNotifs)
           }
         } catch (error) {
@@ -50,7 +46,7 @@ export default function Header({ onSearch, userId}: HeaderProps) {
       }
     }
 
-    fetchNotifications()
+    fetchUserNotifications()
   }, [userId])
 
   const handleSearch = (e: FormEvent<HTMLFormElement>) => {

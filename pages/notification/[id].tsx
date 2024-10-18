@@ -10,10 +10,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import Header from "@/components/Theme/Header"
 import Footer from "@/components/Theme/Footer"
-import { fetchUserById, updateUser, fetchRepositoryById, fetchCommunityById } from "@/lib/db"
+import { fetchUserById, updateUser, fetchRepositoryById, fetchCommunityById, fetchNotifications, markNotificationAsRead } from "@/lib/db"
 import { User, Notification, Repository, Community } from "@/lib/types"
 import { CollaborationRequestDialog } from "@/components/Collaborator/CollaborationRequestDialog"
-// import { JoinRequestDialog } from "@/components/Collaborator/JoinRequestDialog"
 import RandomLoadingComponent from '@/components/ui/Loading'
 
 export default function NotificationPage() {
@@ -23,6 +22,7 @@ export default function NotificationPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [selectedRepo, setSelectedRepo] = useState<Repository | null>(null)
   const [selectedInviter, setSelectedInviter] = useState<User | null>(null)
+  const [allNotifications, setAllNotifications] = useState<Notification[]>([])
   const [selectedCommunity, setSelectedCommunity] = useState<Community | null>(null)
   const [selectedRequester, setSelectedRequester] = useState<User | null>(null)
   const [collaborationDialogOpen, setCollaborationDialogOpen] = useState(false)
@@ -32,25 +32,31 @@ export default function NotificationPage() {
     const fetchData = async () => {
       if (id) {
         setIsLoading(true)
+        
         try {
           const userData = await fetchUserById(id as string)
           if (!userData) {
             throw new Error('User not found')
           }
 
-          const updatedNotifications = userData.notifications.map(notification => ({
-            ...notification,
-            read: true
-          }))
-
-          const updatedUser = {
-            ...userData,
-            notifications: updatedNotifications
+          let notifications: Notification[] = []
+          if (userData.notificationIds && userData.notificationIds.length > 0) {
+            notifications = await fetchNotifications(userData.notificationIds)
+            
+            // Mark all notifications as read
+            const markReadPromises = notifications.map(async (notification) => {
+              if (!notification.read) {
+                const updatedNotification = await markNotificationAsRead(notification.id)
+                return updatedNotification
+              }
+              return notification
+            })
+            
+            notifications = await Promise.all(markReadPromises)
           }
-
-          await updateUser(updatedUser)
-
-          setUser(updatedUser)
+          
+          setAllNotifications(notifications)
+          setUser(userData)
         } catch (error) {
           console.error("Failed to fetch user data:", error)
         } finally {
@@ -61,6 +67,8 @@ export default function NotificationPage() {
 
     fetchData()
   }, [id])
+
+  
 
   const handleCollaborationInvite = async (notification: Notification) => {
     const repoId = notification.link.split('/').pop()?.split('?')[0]
@@ -183,7 +191,7 @@ export default function NotificationPage() {
       case 'summary':
         return (
           <Link 
-            href={`/${notification.link}?userId=${user.id}`}
+            href={`${notification.link}?userId=${user.id}`}
             className="inline-flex items-center text-orange-600 hover:text-orange-800 transition-colors duration-200"
           >
             Read Summary
@@ -258,14 +266,14 @@ export default function NotificationPage() {
               </CardTitle>
             </CardHeader>
             <CardContent className="p-0">
-              {user.notifications.length === 0 ? (
+              {allNotifications.length === 0 ? (
                 <div className="p-6 text-center text-gray-500">
                   <Bell className="mx-auto h-12 w-12 text-orange-300 mb-2" />
                   <p className="text-lg font-medium">You have no notifications.</p>
                 </div>
               ) : (
                 <ul className="divide-y divide-orange-100">
-                  {user.notifications
+                  {allNotifications
                     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
                     .map((notification) => (
                       <li key={notification.id} className="p-6 hover:bg-orange-50 transition-colors duration-200">
