@@ -41,24 +41,6 @@ export default function UserStats({ user }: UserStatsProps) {
             value={user.followers.toLocaleString()} 
           />
         </div>
-        <div className="flex flex-col items-center bg-white rounded-lg p-4 shadow-sm">
-          <p className="text-lg font-semibold text-orange-800 mb-2">Your Rating</p>
-          <div className="flex items-center">
-            <p className="text-3xl font-bold text-orange-600 mr-2">{user.rate.toFixed(1)}</p>
-            <div className="flex">
-              {[...Array(5)].map((_, i) => (
-                <Star
-                  key={i}
-                  className={`w-6 h-6 ${
-                    i < Math.floor(user.rate)
-                      ? 'text-yellow-400 fill-current'
-                      : 'text-gray-300'
-                  }`}
-                />
-              ))}
-            </div>
-          </div>
-        </div>
       </CardContent>
     </Card>
   )
