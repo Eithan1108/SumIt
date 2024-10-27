@@ -83,7 +83,7 @@ export default function Auth() {
     <div className="min-h-screen bg-orange-50 flex flex-col justify-center items-center p-4">
       <Link href="/" className="flex items-center space-x-2 mb-8">
         <ClipboardList className="h-8 w-8 text-orange-500" />
-        <span className="text-2xl font-bold text-orange-700">GetSum</span>
+        <span className="text-2xl font-bold text-orange-700">LeSikum</span>
       </Link>
 
       <Card className="w-full max-w-md">
@@ -173,7 +173,7 @@ export default function Auth() {
       </Card>
 
       <p className="mt-8 text-center text-sm text-orange-600">
-        By {isLogin ? 'logging in' : 'signing up'}, you agree to GetSum's{' '}
+        By {isLogin ? 'logging in' : 'signing up'}, you agree to LeSikum's{' '}
         <Link href="/terms" className="font-medium text-orange-600 hover:underline">
           Terms of Service
         </Link>{' '}

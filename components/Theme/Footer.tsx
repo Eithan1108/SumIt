@@ -9,7 +9,7 @@ export default function Footer() {
           <div className="mb-4 md:mb-0">
             <Link href="/" className="flex items-center space-x-2">
               <ClipboardList  className="h-6 w-6 text-orange-500" />
-              <span className="text-xl font-bold text-orange-700">GetSum</span>
+              <span className="text-xl font-bold text-orange-700">LeSikum</span>
             </Link>
           </div>
           <nav className="flex space-x-4">

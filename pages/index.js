@@ -30,7 +30,7 @@ export default function Component() {
           <nav className="flex justify-between items-center">
             <Link href="/" className="flex items-center space-x-2">
               <BookOpen className="h-8 w-8 text-orange-500" />
-              <span className="text-2xl font-bold text-orange-700">GetSum</span>
+              <span className="text-2xl font-bold text-orange-700">LeSikum</span>
             </Link>
             <div className="space-x-4">
               <Button variant="ghost" asChild>
@@ -50,7 +50,7 @@ export default function Component() {
             Revolutionize Your Knowledge Sharing
           </h1>
           <p className="text-xl md:text-2xl text-orange-600 mb-12 max-w-3xl mx-auto">
-          GetSum transforms how you create, discover, and share concise summaries on any topic. Unlock a world of knowledge at your fingertips.
+          LeSikum transforms how you create, discover, and share concise summaries on any topic. Unlock a world of knowledge at your fingertips.
           </p>
           <Button size="lg" className="bg-orange-500 hover:bg-orange-600 text-white text-lg py-6 px-8" asChild>
             <Link href="/auth?mode=signup">Start Your Learning Journey</Link>
@@ -104,7 +104,7 @@ export default function Component() {
             Revolutionize Your Learning Experience
           </h2>
           <p className="text-xl text-orange-600 mb-12 max-w-3xl mx-auto">
-          GetSum is not just another learning platform. It's a game-changer in the world of knowledge acquisition and sharing. Here's why you'll love it:
+          LeSikum is not just another learning platform. It's a game-changer in the world of knowledge acquisition and sharing. Here's why you'll love it:
           </p>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <Card className="bg-white">
@@ -155,7 +155,7 @@ export default function Component() {
               </CardHeader>
               <CardContent>
                 <p className="text-orange-600">
-                  From science and technology to arts and humanities, GetSum covers a vast array of subjects. Your next discovery is just a click away.
+                  From science and technology to arts and humanities, LeSikum covers a vast array of subjects. Your next discovery is just a click away.
                 </p>
               </CardContent>
             </Card>
@@ -212,7 +212,7 @@ export default function Component() {
             Ready to experience the future of learning?
           </h2>
           <p className="text-xl text-orange-600 mb-12 max-w-3xl mx-auto">
-            Join GetSum today and unlock the full potential of your learning journey. Supercharge your knowledge acquisition and sharing.
+            Join LeSikum today and unlock the full potential of your learning journey. Supercharge your knowledge acquisition and sharing.
           </p>
           <Button size="lg" className="bg-orange-500 hover:bg-orange-600 text-white text-lg py-6 px-8" asChild>
             <Link href="/signup">Get Started Now - It's Free!</Link>
@@ -223,7 +223,7 @@ export default function Component() {
           <h2 className="text-3xl font-bold text-orange-700 mb-6 text-center">Frequently Asked Questions</h2>
           <div className="space-y-6">
             <div>
-              <h3 className="text-xl font-semibold text-orange-600 mb-2">Is GetSum really free?</h3>
+              <h3 className="text-xl font-semibold text-orange-600 mb-2">Is LeSikum really free?</h3>
               <p className="text-orange-700">Yes! We offer a robust free tier that gives you access to most features. We also have premium plans for power users who want even more capabilities.</p>
             </div>
             <div>
@@ -231,11 +231,11 @@ export default function Component() {
               <p className="text-orange-700">Our summaries are created by users and reviewed by our community. However, we always encourage users to think critically and verify important information from primary sources.</p>
             </div>
             <div>
-              <h3 className="text-xl font-semibold text-orange-600 mb-2">Can I use GetSum for academic purposes?</h3>
-              <p className="text-orange-700">Many students and researchers use GetSum to complement their studies. Just remember to cite appropriately if you're using summaries in your work.</p>
+              <h3 className="text-xl font-semibold text-orange-600 mb-2">Can I use LeSikum for academic purposes?</h3>
+              <p className="text-orange-700">Many students and researchers use LeSikum to complement their studies. Just remember to cite appropriately if you're using summaries in your work.</p>
             </div>
             <div>
-              <h3 className="text-xl font-semibold text-orange-600 mb-2">How does GetSum protect my privacy?</h3>
+              <h3 className="text-xl font-semibold text-orange-600 mb-2">How does LeSikum protect my privacy?</h3>
               <p className="text-orange-700">We take privacy seriously. Your personal information is encrypted, and we never share your data with third parties. You can learn more in our Privacy Policy.</p>
             </div>
           </div>

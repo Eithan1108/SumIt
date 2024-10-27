@@ -65,7 +65,7 @@ export default function Header({ onSearch, userId}: HeaderProps) {
         <div className="flex justify-between items-center">
           <Link href={`/dashboard${userId ? `?userId=${userId}` : ''}`} className="flex items-center space-x-2">
             <ClipboardList className="h-8 w-8 text-orange-500" />
-            <span className="text-2xl font-bold text-orange-700">GetSum</span>
+            <span className="text-2xl font-bold text-orange-700">LeSikum</span>
           </Link>
 
           <nav className="flex items-center space-x-4">
