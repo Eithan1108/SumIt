@@ -1,4 +1,4 @@
-"use client"
+'use client'
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
@@ -29,24 +29,29 @@ import {
   User,
   ArrowLeft,
   Users,
+  Lock,
+  Unlock,
+  UserPlus,
+  UserCheck,
 } from "lucide-react"
-import Header from "../components/Theme/Header"
-import Footer from "../components/Theme/Footer"
-import { SummaryCard } from "../components/Cards/SummaryCard"
-import { CommunityCard } from "../components/Cards/CommunityCard"
-import { RepositoryCard } from "../components/Cards/RepositoryCard"
+import Header from "@/components/Theme/Header"
+import Footer from "@/components/Theme/Footer"
+import { SummaryCard } from "@/components/Cards/SummaryCard"
+import { CommunityCard } from "@/components/Cards/CommunityCard"
+import { RepositoryCard } from "@/components/Cards/RepositoryCard"
 import { EditProfileModal } from "./EditProfile"
 import {
   fetchUserById,
   fetchSummariesByOwnerId,
   fetchLikedSummaries,
   fetchSavedSummaries,
-  fetchRepositoriesByOwnerId,
+  fetchAllUserRepositories,
   fetchLikedRepositories,
   fetchSavedRepositories,
   updateUser,
   fetchCommunityById
 } from "@/lib/db"
+import RandomLoadingComponent from '@/components/ui/Loading'
 
 export default function ProfilePage() {
   const [searchTerm, setSearchTerm] = useState("")
@@ -63,6 +68,9 @@ export default function ProfilePage() {
   const [userCommunities, setUserCommunities] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [isEditProfileOpen, setIsEditProfileOpen] = useState(false)
+  const [showPrivateRepos, setShowPrivateRepos] = useState(false)
+  const [showPrivateCommunities, setShowPrivateCommunities] = useState(false)
+  const [showPrivateSummaries, setShowPrivateSummaries] = useState(false)
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -74,7 +82,7 @@ export default function ProfilePage() {
             summariesData,
             likedSummariesData,
             savedSummariesData,
-            reposData,
+            allReposData,
             likedReposData,
             savedReposData
           ] = await Promise.all([
@@ -82,7 +90,7 @@ export default function ProfilePage() {
             fetchSummariesByOwnerId(userId),
             fetchLikedSummaries(userId),
             fetchSavedSummaries(userId),
-            fetchRepositoriesByOwnerId(userId),
+            fetchAllUserRepositories(userId),
             fetchLikedRepositories(userId),
             fetchSavedRepositories(userId)
           ])
@@ -90,11 +98,10 @@ export default function ProfilePage() {
           setUserSummaries(summariesData)
           setLikedSummaries(likedSummariesData)
           setSavedSummaries(savedSummariesData)
-          setUserRepositories(reposData)
+          setUserRepositories(allReposData)
           setLikedRepositories(likedReposData)
           setSavedRepositories(savedReposData)
 
-          // Fetch communities
           if (userData.communities && userData.communities.length > 0) {
             const communitiesData = await Promise.all(
               userData.communities.map(communityId => fetchCommunityById(communityId))
@@ -130,7 +137,6 @@ export default function ProfilePage() {
 
   const navigateToCommunity = (community) => {
     router.push(`/community/${community.id}?userId=${userId}`);
-
   }
 
   const handleEditProfile = () => {
@@ -146,6 +152,45 @@ export default function ProfilePage() {
     }
   }
 
+  const togglePrivateRepos = () => {
+    setShowPrivateRepos(!showPrivateRepos)
+  }
+
+  const togglePrivateCommunities = () => {
+    setShowPrivateCommunities(!showPrivateCommunities)
+  }
+
+  const togglePrivateSummaries = () => {
+    setShowPrivateSummaries(!showPrivateSummaries)
+  }
+
+  const filterRepositories = (repositories) => {
+    return repositories.filter(repo => !repo.isPrivate || showPrivateRepos)
+  }
+
+  const filterCommunities = (communities) => {
+    return communities.filter(community => community.joinPolicy === "open" || showPrivateCommunities)
+  }
+
+  const filterSummaries = (summaries) => {
+    return summaries.filter(summary => !summary.isPrivate || showPrivateSummaries)
+  }
+
+  if (isLoading) {
+    return <RandomLoadingComponent />
+  }
+
+  const filteredUserRepositories = filterRepositories(userRepositories)
+  const ownedRepositories = filteredUserRepositories.filter(repo => repo.owner === userId)
+  const collaboratingRepositories = filteredUserRepositories.filter(repo => repo.collaborators && repo.collaborators.includes(userId))
+  const memberRepositories = filteredUserRepositories.filter(repo => repo.members && repo.members.includes(userId) && repo.owner !== userId && (!repo.collaborators || !repo.collaborators.includes(userId)))
+  const filteredLikedRepositories = filterRepositories(likedRepositories)
+  const filteredSavedRepositories = filterRepositories(savedRepositories)
+  const filteredUserCommunities = filterCommunities(userCommunities)
+  const filteredUserSummaries = filterSummaries(userSummaries)
+  const filteredLikedSummaries = filterSummaries(likedSummaries)
+  const filteredSavedSummaries = filterSummaries(savedSummaries)
+
   return (
     <div className="min-h-screen bg-orange-50">
       <Header onSearch={null} userId={user?.id} />
@@ -153,7 +198,7 @@ export default function ProfilePage() {
       <main className="container mx-auto px-4 py-8">
         <Link
           href={`/dashboard?userId=${userId}`}
-          className="inline-flex items-center mb-4 text-orange-600 hover:text-orange-800"
+          className="inline-flex items-center mb-4 text-orange-600 hover:text-orange-800 transition-colors duration-200"
         >
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back to Dashboard
@@ -198,7 +243,7 @@ export default function ProfilePage() {
               </div>
               {user && (
                 <div className="mt-4 md:mt-0 md:ml-auto">
-                  <Button variant="outline" className="mr-2" onClick={handleEditProfile}>
+                  <Button variant="outline" className="border-orange-500 text-orange-500 hover:bg-orange-100" onClick={handleEditProfile}>
                     <Edit className="w-4 h-4 mr-2" />
                     Edit Profile
                   </Button>
@@ -242,14 +287,24 @@ export default function ProfilePage() {
             </TabsTrigger>
           </TabsList>
           <TabsContent value="summaries">
-            <Card className="bg-white bg-opacity-80 backdrop-blur-sm">
+            <Card className="bg-white bg-opacity-80 backdrop-blur-sm shadow-xl">
               <CardHeader>
-                <CardTitle>My Summaries</CardTitle>
-                <CardDescription>Summaries you've created</CardDescription>
+                <CardTitle className="text-orange-800">My Summaries</CardTitle>
+                <CardDescription className="text-orange-600">Summaries you've created</CardDescription>
               </CardHeader>
               <CardContent>
+                <div className="mb-4">
+                  <Button
+                    onClick={togglePrivateSummaries}
+                    variant="outline"
+                    className="border-orange-500 text-orange-500 hover:bg-orange-100"
+                  >
+                    {showPrivateSummaries ? <Unlock className="w-4 h-4 mr-2" /> : <Lock className="w-4 h-4 mr-2" />}
+                    {showPrivateSummaries ? "Hide Private Summaries" : "Show Private Summaries"}
+                  </Button>
+                </div>
                 <div className="h-[400px] overflow-y-auto pr-4">
-                  {userSummaries.map((summary) => (
+                  {filteredUserSummaries.map((summary) => (
                     <SummaryCard
                       key={summary.id}
                       summary={summary}
@@ -261,60 +316,144 @@ export default function ProfilePage() {
             </Card>
           </TabsContent>
           <TabsContent value="repositories">
-            <Card className="bg-white bg-opacity-80 backdrop-blur-sm">
+            <Card className="bg-white bg-opacity-80 backdrop-blur-sm shadow-xl">
               <CardHeader>
-                <CardTitle>My Repositories</CardTitle>
-                <CardDescription>
+                <CardTitle className="text-orange-800">My Repositories</CardTitle>
+                <CardDescription className="text-orange-600">
                   Repositories you've created or contributed to
                 </CardDescription>
               </CardHeader>
               <CardContent>
+                <div className="mb-4">
+                  <Button
+                    onClick={togglePrivateRepos}
+                    variant="outline"
+                    className="border-orange-500 text-orange-500 hover:bg-orange-100"
+                  >
+                    {showPrivateRepos ? <Unlock className="w-4 h-4 mr-2" /> : <Lock className="w-4 h-4 mr-2" />}
+                    {showPrivateRepos ? "Hide Private Repositories" : "Show Private Repositories"}
+                  </Button>
+                </div>
                 <div className="h-[400px] overflow-y-auto pr-4">
-                  {userRepositories.map((repo) => (
-                    <RepositoryCard
-                      key={repo.id}
-                      repo={repo}
-                      onClick={() => navigateToRepository(repo)}
-                    />
-                  ))}
+                  <div className="mb-6">
+                    <h3 className="text-xl font-semibold text-orange-700 mb-4">
+                      Owned Repositories
+                    </h3>
+                    {ownedRepositories.map((repo) => (
+                      <RepositoryCard
+                        key={repo.id}
+                        repo={repo}
+                        onClick={() => navigateToRepository(repo)}
+                        isPrivate={repo.isPrivate}
+                        isOwner={true}
+                        role="owner"
+                      />
+                    ))}
+                  </div>
+                  <div className="mb-6">
+                    <h3 className="text-xl font-semibold text-orange-700 mb-4">
+                      Collaborating Repositories
+                    </h3>
+                    {collaboratingRepositories.map((repo) => (
+                      <RepositoryCard
+                        key={repo.id}
+                        repo={repo}
+                        onClick={() => navigateToRepository(repo)}
+                        isPrivate={repo.isPrivate}
+                        isOwner={false}
+                        role="collaborator"
+                      />
+                    ))}
+                  </div>
                 </div>
               </CardContent>
             </Card>
           </TabsContent>
           <TabsContent value="communities">
-            <Card className="bg-white bg-opacity-80 backdrop-blur-sm">
+            <Card className="bg-white bg-opacity-80 backdrop-blur-sm shadow-xl">
               <CardHeader>
-                <CardTitle>My Communities</CardTitle>
-                <CardDescription>Communities you're a part of</CardDescription>
+                <CardTitle className="text-orange-800">My Communities</CardTitle>
+                <CardDescription className="text-orange-600">Communities you're a part of</CardDescription>
               </CardHeader>
               <CardContent>
+                <div className="mb-4">
+                  <Button
+                    onClick={togglePrivateCommunities}
+                    variant="outline"
+                    className="border-orange-500 text-orange-500 hover:bg-orange-100"
+                  >
+                    {showPrivateCommunities ? <Unlock className="w-4 h-4 mr-2" /> : <Lock className="w-4 h-4 mr-2" />}
+                    {showPrivateCommunities ? "Show All Communities" : "Show Open Communities Only"}
+                  </Button>
+                </div>
                 <div className="h-[400px] overflow-y-auto pr-4">
-                  {userCommunities.map((community) => (
-                    <CommunityCard
-                      key={community.id}
-                      community={community}
-                      onClick={() => navigateToCommunity(community)}
-                    />
-                  ))}
+                  <div className="mb-6">
+                    <h3 className="text-xl font-semibold text-orange-700 mb-4">
+                      Administrated Communities
+                    </h3>
+                    {filteredUserCommunities
+                      .filter(community => community.admins && community.admins.includes(userId) && community.owner !== userId)
+                      .map((community) => (
+                        <CommunityCard
+                          key={community.id}
+                          community={community}
+                          onClick={() => navigateToCommunity(community)}
+                          role="admin"
+                        />
+                      ))}
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-semibold text-orange-700 mb-4">
+                      Member Communities
+                    </h3>
+                    {filteredUserCommunities
+                      .filter(community => community.members && community.members.includes(userId) && community.owner !== userId && (!community.admins || !community.admins.includes(userId)))
+                      .map((community) => (
+                        <CommunityCard
+                          key={community.id}
+                          community={community}
+                          onClick={() => navigateToCommunity(community)}
+                          role="member"
+                        />
+                      ))}
+                  </div>
                 </div>
               </CardContent>
             </Card>
           </TabsContent>
           <TabsContent value="liked">
-            <Card className="bg-white bg-opacity-80 backdrop-blur-sm">
+            <Card className="bg-white bg-opacity-80 backdrop-blur-sm shadow-xl">
               <CardHeader>
-                <CardTitle>Liked Content</CardTitle>
-                <CardDescription>
+                <CardTitle className="text-orange-800">Liked Content</CardTitle>
+                <CardDescription className="text-orange-600">
                   Summaries and repositories you've liked
                 </CardDescription>
               </CardHeader>
               <CardContent>
+                <div className="mb-4">
+                  <Button
+                    onClick={togglePrivateRepos}
+                    variant="outline"
+                    className="border-orange-500 text-orange-500 hover:bg-orange-100 mr-2"
+                  >
+                    {showPrivateRepos ? <Unlock className="w-4 h-4 mr-2" /> : <Lock className="w-4 h-4 mr-2" />}
+                    {showPrivateRepos ? "Hide Private Repositories" : "Show Private Repositories"}
+                  </Button>
+                  <Button
+                    onClick={togglePrivateSummaries}
+                    variant="outline"
+                    className="border-orange-500 text-orange-500 hover:bg-orange-100"
+                  >
+                    {showPrivateSummaries ? <Unlock className="w-4 h-4 mr-2" /> : <Lock className="w-4 h-4 mr-2" />}
+                    {showPrivateSummaries ? "Hide Private Summaries" : "Show Private Summaries"}
+                  </Button>
+                </div>
                 <div className="h-[400px] overflow-y-auto pr-4">
                   <div className="mb-6">
                     <h3 className="text-xl font-semibold text-orange-700 mb-4">
                       Liked Summaries
                     </h3>
-                    {likedSummaries.map((summary) => (
+                    {filteredLikedSummaries.map((summary) => (
                       <SummaryCard
                         key={summary.id}
                         summary={summary}
@@ -326,11 +465,14 @@ export default function ProfilePage() {
                     <h3 className="text-xl font-semibold text-orange-700 mb-4">
                       Liked Repositories
                     </h3>
-                    {likedRepositories.map((repo) => (
+                    {filteredLikedRepositories.map((repo) => (
                       <RepositoryCard
                         key={repo.id}
                         repo={repo}
                         onClick={() => navigateToRepository(repo)}
+                        isPrivate={repo.isPrivate}
+                        isOwner={repo.owner === userId}
+                        role={repo.owner === userId ? "owner" : repo.collaborators && repo.collaborators.includes(userId) ? "collaborator" : "member"}
                       />
                     ))}
                   </div>
@@ -339,20 +481,38 @@ export default function ProfilePage() {
             </Card>
           </TabsContent>
           <TabsContent value="saved">
-            <Card className="bg-white bg-opacity-80 backdrop-blur-sm">
+            <Card className="bg-white bg-opacity-80 backdrop-blur-sm shadow-xl">
               <CardHeader>
-                <CardTitle>Saved Content</CardTitle>
-                <CardDescription>
+                <CardTitle className="text-orange-800">Saved Content</CardTitle>
+                <CardDescription className="text-orange-600">
                   Summaries and repositories you've saved
                 </CardDescription>
               </CardHeader>
               <CardContent>
+                <div className="mb-4">
+                  <Button
+                    onClick={togglePrivateRepos}
+                    variant="outline"
+                    className="border-orange-500 text-orange-500 hover:bg-orange-100 mr-2"
+                  >
+                    {showPrivateRepos ? <Unlock className="w-4 h-4 mr-2" /> : <Lock className="w-4 h-4 mr-2" />}
+                    {showPrivateRepos ? "Hide Private Repositories" : "Show Private Repositories"}
+                  </Button>
+                  <Button
+                    onClick={togglePrivateSummaries}
+                    variant="outline"
+                    className="border-orange-500 text-orange-500 hover:bg-orange-100"
+                  >
+                    {showPrivateSummaries ? <Unlock className="w-4 h-4 mr-2" /> : <Lock className="w-4 h-4 mr-2" />}
+                    {showPrivateSummaries ? "Hide Private Summaries" : "Show Private Summaries"}
+                  </Button>
+                </div>
                 <div className="h-[400px] overflow-y-auto pr-4">
                   <div className="mb-6">
                     <h3 className="text-xl font-semibold text-orange-700 mb-4">
                       Saved Summaries
                     </h3>
-                    {savedSummaries.map((summary) => (
+                    {filteredSavedSummaries.map((summary) => (
                       <SummaryCard
                         key={summary.id}
                         summary={summary}
@@ -364,11 +524,14 @@ export default function ProfilePage() {
                     <h3 className="text-xl font-semibold text-orange-700 mb-4">
                       Saved Repositories
                     </h3>
-                    {savedRepositories.map((repo) => (
+                    {filteredSavedRepositories.map((repo) => (
                       <RepositoryCard
                         key={repo.id}
                         repo={repo}
                         onClick={() => navigateToRepository(repo)}
+                        isPrivate={repo.isPrivate}
+                        isOwner={repo.owner === userId}
+                        role={repo.owner === userId ? "owner" : repo.collaborators && repo.collaborators.includes(userId) ? "collaborator" : "member"}
                       />
                     ))}
                   </div>

@@ -10,14 +10,17 @@ import Header from '@/components/Theme/Header'
 import Footer from "@/components/Theme/Footer"
 import { fetchCollaborationRequest, acceptCollaboration, rejectCollaboration } from '@/lib/db'
 import { Repository, User } from '../lib/types'
+import RandomLoadingComponent from '@/components/ui/Loading'
+import { ToastProvider, useToast } from '@/components/ui/Toats'
 
-export default function CollaborationRequestPage() {
+function CollaborationRequestContent() {
   const params = useParams()
   const searchParams = useSearchParams()
   const [repo, setRepo] = useState<Repository | null>(null)
   const [inviter, setInviter] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const { addToast } = useToast()
 
   useEffect(() => {
     const fetchData = async () => {
@@ -48,10 +51,11 @@ export default function CollaborationRequestPage() {
     if (!repo || !inviter) return
     try {
       await acceptCollaboration(repo.id, inviter.id)
-      // Show success message and redirect
+      addToast('Collaboration accepted successfully!', 'success')
+      // Redirect to repository page or dashboard
     } catch (err) {
       console.error("Error accepting collaboration:", err)
-      setError('Failed to accept collaboration. Please try again.')
+      addToast('Failed to accept collaboration. Please try again.', 'error')
     }
   }
 
@@ -59,23 +63,40 @@ export default function CollaborationRequestPage() {
     if (!repo || !inviter) return
     try {
       await rejectCollaboration(repo.id, inviter.id)
-      // Show success message and redirect
+      addToast('Collaboration rejected successfully!', 'success')
+      // Redirect to dashboard
     } catch (err) {
       console.error("Error rejecting collaboration:", err)
-      setError('Failed to reject collaboration. Please try again.')
+      addToast('Failed to reject collaboration. Please try again.', 'error')
     }
   }
 
   if (loading) {
-    return <div className="container mx-auto p-4 bg-orange-50">Loading...</div>
+    return <RandomLoadingComponent />
   }
 
   if (error) {
-    return <div className="container mx-auto p-4 bg-orange-50">Error: {error}</div>
+    return (
+      <div className="container mx-auto p-4 bg-orange-50">
+        <Card className="bg-white bg-opacity-80 backdrop-blur-sm shadow-xl">
+          <CardContent className="p-6">
+            <p className="text-red-500">Error: {error}</p>
+          </CardContent>
+        </Card>
+      </div>
+    )
   }
 
   if (!repo || !inviter) {
-    return <div className="container mx-auto p-4 bg-orange-50">Collaboration request not found</div>
+    return (
+      <div className="container mx-auto p-4 bg-orange-50">
+        <Card className="bg-white bg-opacity-80 backdrop-blur-sm shadow-xl">
+          <CardContent className="p-6">
+            <p className="text-orange-600">Collaboration request not found</p>
+          </CardContent>
+        </Card>
+      </div>
+    )
   }
 
   return (
@@ -85,26 +106,32 @@ export default function CollaborationRequestPage() {
       <main className="flex-grow container mx-auto px-4 py-8">
         <Link
           href={`/dashboard?userId=${searchParams?.get('userId')}`}
-          className="inline-flex items-center mb-4 text-orange-600 hover:text-orange-800"
+          className="inline-flex items-center mb-4 text-orange-600 hover:text-orange-800 transition-colors duration-200"
         >
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back to Dashboard
         </Link>
 
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle className="text-2xl font-bold text-orange-600">Collaboration Request</CardTitle>
+        <Card className="bg-white bg-opacity-80 backdrop-blur-sm shadow-xl">
+          <CardHeader className="border-b border-orange-200">
+            <CardTitle className="text-2xl font-bold text-orange-800">Collaboration Request</CardTitle>
           </CardHeader>
-          <CardContent>
-            <p className="mb-4">
+          <CardContent className="p-6">
+            <p className="mb-6 text-orange-700">
               {inviter.name} has invited you to collaborate on the repository "{repo.name}".
             </p>
             <div className="flex space-x-4">
-              <Button onClick={handleAccept} className="bg-green-500 hover:bg-green-600 text-white">
+              <Button 
+                onClick={handleAccept} 
+                className="bg-green-500 hover:bg-green-600 text-white transition-colors duration-200"
+              >
                 <Check className="mr-2 h-4 w-4" />
                 Accept
               </Button>
-              <Button onClick={handleReject} className="bg-red-500 hover:bg-red-600 text-white">
+              <Button 
+                onClick={handleReject} 
+                className="bg-red-500 hover:bg-red-600 text-white transition-colors duration-200"
+              >
                 <X className="mr-2 h-4 w-4" />
                 Reject
               </Button>
@@ -115,5 +142,13 @@ export default function CollaborationRequestPage() {
 
       <Footer />
     </div>
+  )
+}
+
+export default function CollaborationRequestPage() {
+  return (
+    <ToastProvider>
+      <CollaborationRequestContent />
+    </ToastProvider>
   )
 }

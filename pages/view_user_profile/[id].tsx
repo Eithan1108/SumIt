@@ -1,8 +1,10 @@
+"use client"
+
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import Head from 'next/head'
 import Link from 'next/link'
-import { ArrowLeft, Users, BookOpen, Edit, User2 , Settings, UserPlus, UserMinus } from "lucide-react"
+import { ArrowLeft, Users, BookOpen, Edit, User2, Settings, UserPlus, UserMinus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -14,10 +16,10 @@ import Header from "@/components/Theme/Header"
 import Footer from "@/components/Theme/Footer"
 import { fetchUserByUsername, fetchUserById, fetchSummariesByOwnerId, fetchUserRepositories, followUser, unfollowUser } from "@/lib/db"
 import { User, Summary, Repository } from '../../lib/types'
+import RandomLoadingComponent from '@/components/ui/Loading'
+import OwnerCard from '@/components/Cards/OwnerCard'
 
-
-
-export default function ViewUserProfile() {
+export default function Component() {
   const router = useRouter()
   const { id, viewerId } = router.query
   const [user, setUser] = useState<User | null>(null)
@@ -26,6 +28,7 @@ export default function ViewUserProfile() {
   const [userRepos, setUserRepos] = useState<Repository[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isFollowing, setIsFollowing] = useState(false)
+  const [sharedFollowers, setSharedFollowers] = useState<User[]>([])
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -43,10 +46,26 @@ export default function ViewUserProfile() {
           }
 
           const summariesData = await fetchSummariesByOwnerId(userData?.id as string)
-          setUserSummaries(summariesData)
+          const filteredSummaries = summariesData.filter(summary => 
+            !summary.isPrivate || summary.owner === viewerId
+          )
+          setUserSummaries(filteredSummaries)
 
           const reposData = await fetchUserRepositories(userData?.id as string)
-          setUserRepos(reposData)
+          if(!viewerData?.id)
+            return;
+          const filteredRepos = reposData.filter((repo: Repository) => 
+            !repo.isPrivate || repo.owner === viewerData?.id ||
+            (repo.collaborators && repo.collaborators.includes(viewerData?.id))
+          )
+          
+          setUserRepos(filteredRepos)
+
+          if (userData && viewerData) {
+            const sharedFollowerIds = userData.followerIds.filter(id => viewerData.followerIds.includes(id))
+            const sharedFollowersData = await Promise.all(sharedFollowerIds.map(id => fetchUserById(id)))
+            setSharedFollowers(sharedFollowersData.filter(Boolean) as User[])
+          }
         } catch (error) {
           console.error("Failed to fetch user data:", error)
         } finally {
@@ -58,7 +77,7 @@ export default function ViewUserProfile() {
     fetchUserData()
   }, [id, viewerId])
 
-  function handleSearch() {
+  const handleSearch = () => {
     // Implement search functionality here
   }
 
@@ -67,40 +86,42 @@ export default function ViewUserProfile() {
   }
 
   const handleRepoClick = (repoId: string) => {
-    router.push(`/repo/${repoId}?userId=${viewerId}`)
+    router.push(`/repository/${repoId}?userId=${viewerId}`)
   }
 
   const handleFollowToggle = async () => {
     if (user && viewingUser) {
       try {
         if (isFollowing) {
-          await unfollowUser(user.id, viewingUser.id);
+          await unfollowUser(user.id, viewingUser.id)
         } else {
-          await followUser(user.id, viewingUser.id);
+          await followUser(user.id, viewingUser.id)
         }
   
         // Fetch the latest user data
-        const updatedUser = await fetchUserByUsername(user.username);
-        const updatedViewingUser = await fetchUserById(viewingUser.id);
+        const updatedUser = await fetchUserByUsername(user.username)
+        const updatedViewingUser = await fetchUserById(viewingUser.id)
   
         if (updatedUser && updatedViewingUser) {
-          setUser(updatedUser);
-          setViewingUser(updatedViewingUser);
-          setIsFollowing(updatedViewingUser.followingId.includes(updatedUser.id));
+          setUser(updatedUser)
+          setViewingUser(updatedViewingUser)
+          setIsFollowing(updatedViewingUser.followingId.includes(updatedUser.id))
         }
       } catch (error) {
-        console.error(`Failed to ${isFollowing ? 'unfollow' : 'follow'} user:`, error);
+        console.error(`Failed to ${isFollowing ? 'unfollow' : 'follow'} user:`, error)
       }
     }
-  };
+  }
 
   if (isLoading) {
-    return <div className="flex justify-center items-center h-screen">Loading...</div>
+    return <RandomLoadingComponent />
   }
 
   if (!user || !viewingUser) {
-    return <div className="flex justify-center items-center h-screen">User not found</div>
+    return <div className="flex justify-center items-center h-screen text-orange-600">User not found</div>
   }
+
+  const isOwnProfile = user.id === viewingUser.id
 
   return (
     <>
@@ -115,7 +136,7 @@ export default function ViewUserProfile() {
         <main className="container mx-auto px-4 py-8">
           <Link
             href={`/dashboard?userId=${viewerId}`}
-            className="inline-flex items-center mb-4 text-orange-600 hover:text-orange-800"
+            className="inline-flex items-center mb-4 text-orange-600 hover:text-orange-800 transition-colors duration-200"
           >
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back to Dashboard
@@ -150,13 +171,13 @@ export default function ViewUserProfile() {
                   </div>
                 </div>
                 <div className="mt-4 md:mt-0 md:ml-auto">
-                  {user.id === viewingUser.id ? (
+                  {isOwnProfile ? (
                     <>
-                      <Button variant="outline" className="mr-2">
+                      <Button variant="outline" className="mr-2 border-orange-300 text-orange-600 hover:bg-orange-100">
                         <Edit className="w-4 h-4 mr-2" />
                         Edit Profile
                       </Button>
-                      <Button variant="outline">
+                      <Button variant="outline" className="border-orange-300 text-orange-600 hover:bg-orange-100">
                         <Settings className="w-4 h-4 mr-2" />
                         Settings
                       </Button>
@@ -165,7 +186,7 @@ export default function ViewUserProfile() {
                     <Button 
                       className={`transition-colors duration-200 ${
                         isFollowing 
-                          ? 'bg-white hover:bg-gray-100 text-orange-500 border border-orange-500' 
+                          ? 'bg-white hover:bg-orange-100 text-orange-500 border border-orange-500' 
                           : 'bg-orange-500 hover:bg-orange-600 text-white'
                       }`}
                       onClick={handleFollowToggle}
@@ -188,7 +209,7 @@ export default function ViewUserProfile() {
             </CardContent>
           </Card>
 
-          {user.id !== viewingUser.id && (
+          {!isOwnProfile && (
             <div className="mb-6 bg-orange-100 rounded-lg p-4">
               <p className="text-orange-800">You are viewing this profile as: {viewingUser.name} (@{viewingUser.username})</p>
             </div>
@@ -196,15 +217,15 @@ export default function ViewUserProfile() {
 
           <Tabs defaultValue="summaries" className="space-y-4">
             <TabsList className="bg-white bg-opacity-70 backdrop-blur-sm">
-              <TabsTrigger value="summaries" className="data-[state=active]:bg-orange-200">Summaries</TabsTrigger>
-              <TabsTrigger value="repos" className="data-[state=active]:bg-orange-200">Repositories</TabsTrigger>
-              <TabsTrigger value="followers" className="data-[state=active]:bg-orange-200">Followers</TabsTrigger>
+              <TabsTrigger value="summaries" className="data-[state=active]:bg-orange-200 data-[state=active]:text-orange-800">Summaries</TabsTrigger>
+              <TabsTrigger value="repos" className="data-[state=active]:bg-orange-200 data-[state=active]:text-orange-800">Repositories</TabsTrigger>
+              <TabsTrigger value="followers" className="data-[state=active]:bg-orange-200 data-[state=active]:text-orange-800">Shared Followers</TabsTrigger>
             </TabsList>
             <TabsContent value="summaries">
-              <Card className="bg-white bg-opacity-80 backdrop-blur-sm">
+              <Card className="bg-white bg-opacity-80 backdrop-blur-sm shadow-xl">
                 <CardHeader>
-                  <CardTitle>User Summaries</CardTitle>
-                  <CardDescription>Summaries created by {user.name}</CardDescription>
+                  <CardTitle className="text-orange-800">User Summaries</CardTitle>
+                  <CardDescription className="text-orange-600">Summaries created by {user.name}</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
@@ -215,15 +236,18 @@ export default function ViewUserProfile() {
                         onClick={() => handleSummaryClick(summary.id)}
                       />
                     ))}
+                    {userSummaries.length === 0 && (
+                      <p className="text-orange-600">No visible summaries available.</p>
+                    )}
                   </div>
                 </CardContent>
               </Card>
             </TabsContent>
             <TabsContent value="repos">
-              <Card className="bg-white bg-opacity-80 backdrop-blur-sm">
+              <Card className="bg-white bg-opacity-80 backdrop-blur-sm shadow-xl">
                 <CardHeader>
-                  <CardTitle>User Repositories</CardTitle>
-                  <CardDescription>Repositories created by {user.name}</CardDescription>
+                  <CardTitle className="text-orange-800">User Repositories</CardTitle>
+                  <CardDescription className="text-orange-600">Repositories created by {user.name}</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
@@ -232,27 +256,37 @@ export default function ViewUserProfile() {
                         key={repo.id}
                         repo={repo}
                         onClick={() => handleRepoClick(repo.id)}
+                        
+                        
+                      
                       />
                     ))}
+                    {userRepos.length === 0 && (
+                      <p className="text-orange-600">No visible repositories available.</p>
+                    )}
                   </div>
                 </CardContent>
               </Card>
             </TabsContent>
             <TabsContent value="followers">
-              <Card className="bg-white bg-opacity-80 backdrop-blur-sm">
+              <Card className="bg-white bg-opacity-80 backdrop-blur-sm shadow-xl">
                 <CardHeader>
-                  <CardTitle>Followers</CardTitle>
-                  <CardDescription>Users following {user.name}</CardDescription>
+                  <CardTitle className="text-orange-800">Shared Followers</CardTitle>
+                  <CardDescription className="text-orange-600">Users following both {user.name} and you</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-2">
-                    {user.followerIds.map((followerId) => (
-                      <div key={followerId} className="p-2 bg-orange-100 rounded-md">
-                        <Link href={`/view_user_profile/${followerId}?viewerId=${viewerId}`} className="text-orange-600 hover:text-orange-800">
-                          {followerId}
-                        </Link>
+                  <div className="grid grid-cols-1 gap-4">
+                    {sharedFollowers.map((follower) => (
+                      <div key={follower.id} className="w-full">
+                        <OwnerCard
+                          owner={follower}
+                          viewingUserId={viewingUser.id}
+                        />
                       </div>
                     ))}
+                    {sharedFollowers.length === 0 && (
+                      <p className="text-orange-600">No shared followers found.</p>
+                    )}
                   </div>
                 </CardContent>
               </Card>

@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { BookOpen } from 'lucide-react'
+import { BookOpen, ClipboardList   } from 'lucide-react'
 
 export default function Footer() {
   return (
@@ -8,8 +8,8 @@ export default function Footer() {
         <div className="flex flex-col md:flex-row justify-between items-center">
           <div className="mb-4 md:mb-0">
             <Link href="/" className="flex items-center space-x-2">
-              <BookOpen className="h-6 w-6 text-orange-500" />
-              <span className="text-xl font-bold text-orange-700">SumIt</span>
+              <ClipboardList  className="h-6 w-6 text-orange-500" />
+              <span className="text-xl font-bold text-orange-700">GetSum</span>
             </Link>
           </div>
           <nav className="flex space-x-4">

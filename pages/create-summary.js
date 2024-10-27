@@ -2,26 +2,62 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { AlertCircle, Folder, Plus, X, Tag, Search, Upload } from "lucide-react"
-import Footer from "../components/Theme/Footer"
-import Header from "../components/Theme/Header"
-import { addSummary, fetchUserById, fetchUserRepositories, fetchAllTags } from '@/lib/db'
+import { AlertCircle, ArrowLeft, Folder, Plus, X, Tag, Upload, ChevronRight, ChevronDown } from "lucide-react"
+import Link from "next/link"
+import Footer from "@/components/Theme/Footer"
+import Header from "@/components/Theme/Header"
+import { addSummary, fetchUserById, fetchUserRepositories, fetchCommunityById } from '@/lib/db'
 import { ToastProvider, useToast } from '@/components/ui/Toats'
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
+import { Label } from "@/components/ui/label"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+
+function Switch({ checked, onChange, id, label }) {
+  return (
+    <label 
+      htmlFor={id} 
+      className="flex items-center cursor-pointer"
+    >
+      <div className="relative">
+        <input
+          type="checkbox"
+          id={id}
+          className="sr-only"
+          checked={checked}
+          onChange={(e) => onChange(e.target.checked)}
+        />
+        <div
+          className={`block w-14 h-8 rounded-full transition-colors ${
+            checked ? 'bg-orange-500' : 'bg-gray-300'
+          }`}
+        ></div>
+        <div
+          className={`absolute left-1 top-1 bg-white w-6 h-6 rounded-full transition-transform transform ${
+            checked ? 'translate-x-6' : 'translate-x-0'
+          }`}
+        ></div>
+      </div>
+      {label && (
+        <span className="ml-3 text-sm font-medium text-orange-800">
+          {label}
+        </span>
+      )}
+    </label>
+  )
+}
 
 function CreateSummaryContent() {
   const router = useRouter()
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
-  const [isPrivate, setIsPrivate] = useState(false)
+  const [isPrivate, setIsPrivate] = useState(true)
   const [selectedTags, setSelectedTags] = useState([])
-  const [availableTags, setAvailableTags] = useState([])
   const [newTag, setNewTag] = useState('')
   const [tagSearch, setTagSearch] = useState('')
   const [isTagDropdownOpen, setIsTagDropdownOpen] = useState(false)
   const [location, setLocation] = useState('')
-  const [isLocationPickerOpen, setIsLocationPickerOpen] = useState(false)
-  const [newFolderName, setNewFolderName] = useState('')
-  const [selectedRepo, setSelectedRepo] = useState(null)
   const [content, setContent] = useState('')
   const [user, setUser] = useState(null)
   const [userRepositories, setUserRepositories] = useState([])
@@ -29,6 +65,9 @@ function CreateSummaryContent() {
   const { addToast } = useToast()
   const [file, setFile] = useState(null)
   const fileInputRef = useRef(null)
+  const [visibilityWarning, setVisibilityWarning] = useState('')
+  const [isDragging, setIsDragging] = useState(false)
+  const [expandedFolders, setExpandedFolders] = useState({})
 
   useEffect(() => {
     const fetchData = async () => {
@@ -40,8 +79,6 @@ function CreateSummaryContent() {
           setUser(fetchedUser);
           const repos = await fetchUserRepositories(userId);
           setUserRepositories(repos);
-          const tags = await fetchAllTags();
-          setAvailableTags(tags);
         }
       } catch (error) {
         console.error('Error fetching data:', error);
@@ -51,6 +88,23 @@ function CreateSummaryContent() {
     fetchData();
   }, [addToast]);
 
+  useEffect(() => {
+    const updateVisibilityWarning = async () => {
+      if (location) {
+        try {
+          const warning = await getVisibilityWarning();
+          setVisibilityWarning(warning);
+        } catch (error) {
+          console.error('Error getting visibility warning:', error);
+          setVisibilityWarning("Unable to determine visibility. Please check your settings.");
+        }
+      } else {
+        setVisibilityWarning("Please select a location to see visibility details.");
+      }
+    };
+    updateVisibilityWarning();
+  }, [location, isPrivate]);
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     setIsSubmitting(true)
@@ -58,7 +112,11 @@ function CreateSummaryContent() {
       if (!user) {
         throw new Error('User not found');
       }
-      const [repoId, folderId] = location.split('/');
+      const locationPath = location.split('/');
+      const repoId = locationPath[0];
+      const folderPath = locationPath.slice(1);
+      const folderId = folderPath.length > 0 ? folderPath[folderPath.length - 1] : undefined;
+
       const newSummary = {
         title,
         description,
@@ -67,7 +125,8 @@ function CreateSummaryContent() {
         owner: user.id,
         tags: selectedTags,
         isPrivate,
-        neuronGraph: {}
+        neuronGraph: {},
+        path: ["Root", ...folderPath]
       }
 
       let fileId = null;
@@ -105,37 +164,6 @@ function CreateSummaryContent() {
     }
   }
 
-  const handleLocationSelect = (repoId, folderId) => {
-    const repo = userRepositories.find(r => r.id === repoId)
-    const folder = folderId ? repo.rootFolder.items.find(f => f.id === folderId) : null
-    setLocation(`${repoId}${folderId ? `/${folderId}` : ''}`)
-    setSelectedRepo(repo)
-    setIsLocationPickerOpen(false)
-  }
-
-  const handleSearch = (term) => {
-    // Implement search functionality
-  }
-
-  const handleCreateFolder = async () => {
-    if (selectedRepo && newFolderName) {
-      try {
-        // Note: This function needs to be implemented to handle folder creation
-        const updatedRepo = await createNewFolder(selectedRepo.id, newFolderName)
-        setUserRepositories(prevRepos => 
-          prevRepos.map(repo => 
-            repo.id === updatedRepo.id ? updatedRepo : repo
-          )
-        )
-        setNewFolderName('')
-        addToast('Folder created successfully!', 'success');
-      } catch (error) {
-        console.error('Error creating new folder:', error)
-        addToast('Failed to create folder. Please try again.', 'error');
-      }
-    }
-  }
-
   const handleAddTag = (tag) => {
     if (tag && !selectedTags.includes(tag)) {
       setSelectedTags([...selectedTags, tag])
@@ -154,73 +182,163 @@ function CreateSummaryContent() {
     }
   }
 
-  const handleFileUploadClick = () => {
-    fileInputRef.current.click()
+  const getVisibilityWarning = async () => {
+    if (!location) return "Please select a location to see visibility details."
+
+    const [repoId] = location.split('/');
+    const selectedRepo = userRepositories.find(repo => repo.id === repoId);
+
+    if (!selectedRepo) return "Please select a valid repository to see visibility details."
+
+    let communityType = "No"
+    if (selectedRepo.communityId) {
+      try {
+        const community = await fetchCommunityById(selectedRepo.communityId)
+        if (community) {
+          communityType = community.joinPolicy === "open" ? "Public" : "Private"
+        }
+      } catch (error) {
+        console.error('Error fetching community:', error)
+        // If we can't fetch the community, we'll assume it's not associated with one
+      }
+    }
+
+    const repoType = selectedRepo.isPrivate ? "Private" : "Public"
+    const summaryType = isPrivate ? "Private" : "Public"
+
+    const scenarios = {
+      "Public Community + Public Repository + Public Summary": "This summary will be fully visible to all users.",
+      "Public Community + Public Repository + Private Summary": "This summary will only be visible to its owner and collaborators.",
+      "Public Community + Private Repository + Public Summary": "This summary will only be visible to community members and repository collaborators.",
+      "Public Community + Private Repository + Private Summary": "This summary will only be visible to its owner and collaborators.",
+      "Private Community + Public Repository + Public Summary": "This summary will only be visible to community members.",
+      "Private Community + Public Repository + Private Summary": "This summary will only be visible to its owner and collaborators.",
+      "Private Community + Private Repository + Public Summary": "This summary will only be visible to community members and repository collaborators.",
+      "Private Community + Private Repository + Private Summary": "This summary will only be visible to its owner and collaborators.",
+      "No Community + Public Repository + Public Summary": "This summary will be visible and discoverable by anyone.",
+      "No Community + Public Repository + Private Summary": "This summary will only be visible to its owner and collaborators.",
+      "No Community + Private Repository + Public Summary": "This summary will only be visible to repository collaborators.",
+      "No Community + Private Repository + Private Summary": "This summary will only be visible to its owner and collaborators."
+    }
+
+    const key = `${communityType} Community + ${repoType} Repository + ${summaryType} Summary`;
+    return scenarios[key] || "Visibility cannot be determined. Please check your settings."
   }
 
-  const filteredTags = availableTags.filter(tag => 
-    tag.toLowerCase().includes(tagSearch.toLowerCase()) && !selectedTags.includes(tag)
-  )
+  const toggleFolder = (folderId) => {
+    setExpandedFolders(prev => ({
+      ...prev,
+      [folderId]: !prev[folderId]
+    }))
+  }
+
+  const renderFolders = (items, parentId, level = 0) => {
+    return items
+      .filter(item => item.type === 'folder' || item.items)
+      .map((folder) => {
+        const currentPath = `${parentId}/${folder.id}`
+        const isExpanded = expandedFolders[folder.id]
+        const hasSubfolders = folder.items && folder.items.some(item => item.type === 'folder' || item.items)
+
+        return (
+          <div key={folder.id} style={{ marginLeft: `${level * 16}px` }}>
+            <button
+              type="button"
+              className={`w-full text-left px-2 py-1 rounded-md hover:bg-orange-100 focus:outline-none focus:ring-2 focus:ring-orange-500 ${
+                location === currentPath ? 'bg-orange-200' : ''
+              }`}
+              onClick={() => {
+                setLocation(currentPath)
+                if (hasSubfolders) {
+                  toggleFolder(folder.id)
+                }
+              }}
+            >
+              {hasSubfolders && (
+                isExpanded ? (
+                  <ChevronDown className="inline-block mr-1 h-4 w-4 text-orange-600" />
+                ) : (
+                  <ChevronRight className="inline-block mr-1 h-4 w-4 text-orange-600" />
+                )
+              )}
+              <Folder className="inline-block mr-2 h-4 w-4 text-orange-600" />
+              {folder.name}
+            </button>
+            {isExpanded && folder.items && folder.items.length > 0 && renderFolders(folder.items, currentPath, level + 1)}
+          </div>
+        )
+      })
+  }
 
   return (
     <div className="min-h-screen bg-orange-50">
-      <Header onSearch={handleSearch} userId={user?.id} />
+      <Header onSearch={() => {}} userId={user?.id} />
 
       <main className="container mx-auto p-4 max-w-3xl">
-        <div className="bg-white shadow-lg rounded-lg p-6">
-          <h1 className="text-2xl font-bold text-orange-700 mb-6">Create a New Summary</h1>
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div>
-              <label htmlFor="title" className="block text-lg font-medium text-orange-700 mb-2">Summary Title</label>
-              <input 
-                id="title" 
-                type="text"
-                value={title} 
-                onChange={(e) => setTitle(e.target.value)} 
-                placeholder="Enter summary title" 
-                className="w-full px-3 py-2 border border-orange-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
-                required
-              />
-            </div>
-            <div>
-              <label htmlFor="description" className="block text-lg font-medium text-orange-700 mb-2">Description</label>
-              <textarea 
-                id="description" 
-                value={description} 
-                onChange={(e) => setDescription(e.target.value)} 
-                placeholder="Enter summary description" 
-                className="w-full px-3 py-2 border border-orange-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
-                rows={4}
-              />
-            </div>
-            <div>
-              <label htmlFor="content" className="block text-lg font-medium text-orange-700 mb-2">Content</label>
-              <textarea 
-                id="content" 
-                value={content} 
-                onChange={(e) => setContent(e.target.value)} 
-                placeholder="Enter summary content" 
-                className="w-full px-3 py-2 border border-orange-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
-                rows={8}
-                required
-              />
-            </div>
-            <div>
-              <label htmlFor="tags" className="block text-lg font-medium text-orange-700 mb-2">Tags</label>
-              <div className="flex flex-wrap gap-2 mb-2">
-                {selectedTags.map((tag, index) => (
-                  <span key={index} className="bg-orange-100 text-orange-800 px-2 py-1 rounded-full text-sm flex items-center">
-                    {tag}
-                    <button type="button" onClick={() => handleRemoveTag(tag)} className="ml-1 text-orange-600 hover:text-orange-800">
-                      <X className="h-4 w-4" />
-                    </button>
-                  </span>
-                ))}
+        <Button
+          onClick={() => router.back()}
+          variant="ghost"
+          className="mb-4 text-orange-600 hover:text-orange-800 transition-colors duration-200"
+        >
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Back
+        </Button>
+
+        <Card className="max-w-2xl mx-auto bg-white bg-opacity-80 backdrop-blur-sm shadow-xl">
+          <CardHeader className="border-b border-orange-200">
+            <CardTitle className="text-2xl font-bold text-orange-800">Create New Summary</CardTitle>
+          </CardHeader>
+          <CardContent className="p-6">
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div className="space-y-2">
+                <Label htmlFor="title" className="text-sm font-medium text-orange-800">Summary Title</Label>
+                <Input
+                  id="title"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  required
+                  className="w-full px-3 py-2 bg-orange-50 border border-orange-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition duration-150 ease-in-out"
+                  placeholder="Enter summary title"
+                />
               </div>
-              <div className="relative">
-                <div className="flex">
-                  <div className="relative flex-grow">
-                    <input
+              <div className="space-y-2">
+                <Label htmlFor="description" className="text-sm font-medium text-orange-800">Description</Label>
+                <Textarea
+                  id="description"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  rows={4}
+                  className="w-full px-3 py-2 bg-orange-50 border border-orange-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition duration-150 ease-in-out"
+                  placeholder="Describe your summary"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="content" className="text-sm font-medium text-orange-800">Content</Label>
+                <Textarea
+                  id="content"
+                  value={content}
+                  onChange={(e) => setContent(e.target.value)}
+                  rows={8}
+                  className="w-full px-3 py-2 bg-orange-50 border border-orange-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition duration-150 ease-in-out"
+                  placeholder="Enter summary content"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="tags" className="text-sm font-medium text-orange-800">Tags</Label>
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {selectedTags.map((tag, index) => (
+                    <span key={index} className="bg-orange-100 text-orange-800 px-2 py-1 rounded-full text-sm flex items-center">
+                      {tag}
+                      <button type="button" onClick={() => handleRemoveTag(tag)} className="ml-1 text-orange-600 hover:text-orange-800">
+                        <X className="h-4 w-4" />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+                <div className="relative mt-2">
+                  <div className="flex">
+                    <Input
                       type="text"
                       value={tagSearch}
                       onChange={(e) => {
@@ -229,178 +347,159 @@ function CreateSummaryContent() {
                       }}
                       onFocus={() => setIsTagDropdownOpen(true)}
                       placeholder="Search or add new tag"
-                      className="w-full px-3 py-2 border border-orange-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+                      className="w-full  px-3 py-2 bg-orange-50 border border-orange-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition duration-150 ease-in-out"
                     />
-                    <Search className="absolute right-3 top-2.5 h-5 w-5 text-gray-400" />
+                    <Button
+                      type="button"
+                      onClick={() => handleAddTag(tagSearch)}
+                      className="ml-2 bg-orange-500 text-white hover:bg-orange-600"
+                    >
+                      <Tag className="h-5 w-5" />
+                    </Button>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => handleAddTag(tagSearch)}
-                    className="bg-orange-500 text-white px-4 py-2 rounded-r-md hover:bg-orange-600 focus:outline-none focus:ring-2 focus:ring-orange-500"
-                  >
-                    <Tag className="h-5 w-5" />
-                  </button>
+                  {isTagDropdownOpen && (
+                    <ul className="absolute z-10 w-full mt-1 bg-white border border-orange-300 rounded-md shadow-lg max-h-60 overflow-auto">
+                      {selectedTags.map((tag, index) => (
+                        <li
+                          key={index}
+                          className="px-3 py-2 hover:bg-orange-100 cursor-pointer"
+                          onClick={() => {
+                            handleAddTag(tag)
+                            setIsTagDropdownOpen(false)
+                          }}
+                        >
+                          {tag}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                 </div>
-                {isTagDropdownOpen && (
-                  <ul className="absolute z-10 w-full mt-1 bg-white border border-orange-300 rounded-md shadow-lg max-h-60 overflow-auto">
-                    {filteredTags.map((tag, index) => (
-                      <li
-                        key={index}
-                        className="px-3 py-2 hover:bg-orange-100 cursor-pointer"
-                        onClick={() => {
-                          handleAddTag(tag)
-                          setIsTagDropdownOpen(false)
-                        }}
-                      >
-                        {tag}
-                      </li>
-                    ))}
-                  </ul>
-                )}
               </div>
-            </div>
-            <div>
-              <label htmlFor="location" className="block text-lg font-medium text-orange-700 mb-2">Location</label>
-              <button
-                type="button"
-                className="w-full px-3 py-2 border border-orange-300 rounded-md text-left font-normal hover:bg-orange-50 focus:outline-none focus:ring-2 focus:ring-orange-500"
-                onClick={() => setIsLocationPickerOpen(true)}
-              >
-                <Folder className="inline-block mr-2 h-4 w-4 text-orange-500" />
-                {location || 'Choose location'}
-              </button>
-              {location && (
-                <div className="mt-2 text-sm text-orange-600">
-                  <div className="flex items-center">
-                    <Folder className="mr-1 h-4 w-4" />
-                    <span>{selectedRepo?.name || 'My Summaries'}</span>
-                    {location.split('/')[1] && (
-                      <>
-                        <span className="mx-1">/</span>
-                        <span>{selectedRepo?.rootFolder.items.find(f => f.id === location.split('/')[1])?.name || ''}</span>
-                      </>
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
-            <div>
-              <label htmlFor="file-upload" className="block text-lg font-medium text-orange-700 mb-2">Upload File (Optional)</label>
-              <div className="mt-1 flex items-center">
-                <input
-                  ref={fileInputRef}
-                  id="file-upload"
-                  name="file-upload"
-                  type="file"
-                  className="sr-only"
-                  onChange={handleFileChange}
-                />
-                <button
-                  type="button"
-                  onClick={handleFileUploadClick}
-                  className="inline-flex items-center px-4 py-2 border border-orange-300 rounded-md shadow-sm text-sm font-medium text-orange-700 bg-white hover:bg-orange-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500"
+              <div className="space-y-2">
+                <Label htmlFor="location" className="text-sm font-medium text-orange-800">Location</Label>
+                <Card className="bg-white shadow-md">
+                  <CardHeader className="py-3 px-4 bg-orange-100 border-b border-orange-200">
+                    <CardTitle className="text-sm font-semibold text-orange-800">Select a location for your summary</CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-0">
+                    <div className="max-h-60 overflow-y-auto">
+                      {userRepositories.map((repo) => (
+                        <div key={repo.id} className="border-b border-orange-100 last:border-b-0">
+                          <button
+                            type="button"
+                            className={`w-full text-left px-4 py-2 hover:bg-orange-50 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-orange-500 ${
+                              location === repo.id ? 'bg-orange-100' : ''
+                            }`}
+                            onClick={() => {
+                              setLocation(repo.id)
+                              toggleFolder(repo.id)
+                            }}
+                          >
+                            {expandedFolders[repo.id] ? (
+                              <ChevronDown className="inline-block mr-2 h-4 w-4 text-orange-600" />
+                            ) : (
+                              <ChevronRight className="inline-block mr-2 h-4 w-4 text-orange-600" />
+                            )}
+                            <Folder className="inline-block mr-2 h-4 w-4 text-orange-600" />
+                            {repo.name}
+                          </button>
+                          {expandedFolders[repo.id] && renderFolders(repo.rootFolder.items, repo.id, 1)}
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="file-upload" className="text-sm font-medium text-orange-800">Upload File (Optional)</Label>
+                <div
+                  className={`mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-dashed rounded-md ${
+                    isDragging ? 'border-orange-500 bg-orange-50' : 'border-orange-300'
+                  }`}
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    setIsDragging(true);
+                  }}
+                  onDragLeave={() => setIsDragging(false)}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    setIsDragging(false);
+                    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+                      setFile(e.dataTransfer.files[0]);
+                    }
+                  }}
                 >
-                  <Upload className="h-5 w-5 mr-2" />
-                  Upload File
-                </button>
+                  <div className="space-y-1 text-center">
+                    <svg
+                      className="mx-auto h-12 w-12 text-orange-400"
+                      stroke="currentColor"
+                      fill="none"
+                      viewBox="0 0 48 48"
+                      aria-hidden="true"
+                    >
+                      <path
+                        d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
+                        strokeWidth={2}
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                    <div className="flex text-sm text-orange-600">
+                      <label
+                        htmlFor="file-upload"
+                        className="relative cursor-pointer bg-white rounded-md font-medium text-orange-600 hover:text-orange-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-orange-500"
+                      >
+                        <span>Upload a file</span>
+                        <input
+                          id="file-upload"
+                          name="file-upload"
+                          type="file"
+                          className="sr-only"
+                          onChange={handleFileChange}
+                        />
+                      </label>
+                      <p className="pl-1">or drag and drop</p>
+                    </div>
+                    <p className="text-xs text-orange-500">
+                      PNG, JPG, GIF up to 10MB
+                    </p>
+                  </div>
+                </div>
                 {file && (
-                  <span className="ml-4 text-sm text-orange-500">{file.name}</span>
+                  <p className="mt-2 text-sm text-orange-500">
+                    Selected file: {file.name}
+                  </p>
                 )}
               </div>
-            </div>
-            <div className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                id="private"
-                checked={isPrivate}
-                onChange={(e) => setIsPrivate(e.target.checked)}
-                className="rounded border-orange-300 text-orange-500 focus:ring-orange-500"
-              />
-              <label htmlFor="private" className="text-orange-700">Make this summary private</label>
-            </div>
-            <div className="bg-orange-50 border-l-4 border-orange-400 p-4 rounded-md">
-              <div className="flex items-start">
-                <AlertCircle className="h-5 w-5 text-orange-400 mt-0.5 mr-3 flex-shrink-0" />
-                <p className="text-sm text-orange-700">
-                  Private summaries are only visible to you and people you share them with.
-                </p>
+              <div className="flex items-center justify-between space-x-2 bg-orange-100 p-4 rounded-md">
+                <span className="text-sm font-medium text-orange-800">Summary Privacy</span>
+                <Switch
+                  checked={isPrivate}
+                  onChange={setIsPrivate}
+                  id="privacy-toggle"
+                  label={isPrivate ? 'Private' : 'Public'}
+                />
               </div>
-            </div>
-            <button 
-              type="submit" 
-              className="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline" 
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? 'Creating...' : 'Create Summary'}
-            </button>
-          </form>
-        </div>
+              <div className="bg-orange-50 border-l-4 border-orange-400 p-4 rounded-md">
+                <div className="flex items-start">
+                  <AlertCircle className="h-5 w-5 text-orange-400 mt-0.5 mr-3 flex-shrink-0" />
+                  <p className="text-sm text-orange-700">
+                    {visibilityWarning}
+                  </p>
+                </div>
+              </div>
+              <Button 
+                type="submit" 
+                className="w-full bg-orange-500 text-white hover:bg-orange-600 transition-colors duration-200 py-2 rounded-md shadow-md hover:shadow-lg transform hover:-translate-y-0.5" 
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? 'Creating...' : 'Create Summary'}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
       </main>
 
-      {isLocationPickerOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full  max-w-md">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold text-orange-700">Select Location</h2>
-              <button onClick={() => setIsLocationPickerOpen(false)} className="text-orange-600  hover:text-orange-800">
-                <X className="h-6 w-6" />
-              </button>
-            </div>
-            <div className="space-y-4 max-h-96 overflow-y-auto">
-              {userRepositories.map(repo => (
-                <div key={repo.id} className="border-b border-orange-200 pb-4">
-                  <h3 className="font-semibold text-orange-600 mb-2">{repo.name}</h3>
-                  <ul className="space-y-2">
-                    <li>
-                      <button
-                        className="w-full text-left px-2 py-1 rounded-md hover:bg-orange-100 focus:outline-none focus:ring-2 focus:ring-orange-500"
-                        onClick={() => handleLocationSelect(repo.id)}
-                      >
-                        <Folder className="inline-block mr-2 h-4 w-4" />
-                        Root
-                      </button>
-                    </li>
-                    {repo.rootFolder.items.map(folder => (
-                      <li key={folder.id}>
-                        <button
-                          className="w-full text-left px-2 py-1 rounded-md hover:bg-orange-100 focus:outline-none focus:ring-2 focus:ring-orange-500"
-                          onClick={() => handleLocationSelect(repo.id, folder.id)}
-                        >
-                          <Folder className="inline-block mr-2 h-4 w-4" />
-                          {folder.name}
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                  {selectedRepo && selectedRepo.id === repo.id && (
-                    <div className="mt-2 flex items-center">
-                      <input
-                        type="text"
-                        value={newFolderName}
-                        onChange={(e) => setNewFolderName(e.target.value)}
-                        placeholder="New folder name"
-                        className="flex-grow mr-2 px-2 py-1 border border-orange-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
-                      />
-                      <button 
-                        onClick={handleCreateFolder}
-                        className="bg-orange-500 hover:bg-orange-600 text-white px-2 py-1 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
-                      >
-                        <Plus className="h-4 w-4" />
-                      </button>
-                    </div>
-                  )}
-                  <button
-                    className="mt-2 text-orange-600 hover:text-orange-700 focus:outline-none focus:underline"
-                    onClick={() => setSelectedRepo(selectedRepo?.id === repo.id ? null : repo)}
-                  >
-                    {selectedRepo?.id === repo.id ? 'Cancel' : 'Create Folder'}
-                  </button>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
       <Footer />
     </div>
   )

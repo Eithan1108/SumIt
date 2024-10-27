@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import Input from "@/components/ui/SeconInput"
-import { ArrowLeft, Users, MessageSquare, BookOpen, Calendar, Shield, Settings, PlusCircle, Search, Star, TrendingUp, Eye, ThumbsUp, GitFork, FileCode, UserPlus, Award } from "lucide-react"
+import { ArrowLeft, Users, MessageSquare, BookOpen, Calendar, Shield, Settings, PlusCircle, Search, Star, TrendingUp, Eye, ThumbsUp, GitFork, FileCode, UserPlus, Award, Lock } from "lucide-react"
 import Header from "@/components/Theme/Header"
 import Footer from "@/components/Theme/Footer"
 import { RepositoryCard } from "@/components/Cards/RepositoryCard"
@@ -17,7 +17,6 @@ import { fetchCommunityById, fetchUserById, fetchRepositoryById, joinCommunity, 
 import { Community, User, Repository } from "@/lib/types"
 import { JoinRequestDialog } from "@/components/Collaborator/JoinRequestDialog"
 import OwnerCard from '@/components/Cards/OwnerCard'
-
 
 export default function CommunityPage() {
   const router = useRouter()
@@ -53,6 +52,13 @@ export default function CommunityPage() {
 
         setCommunity(communityData);
         setUser(userData);
+
+        // Check if the user has access to the community
+        const hasAccess = communityData.members.includes(userData.id) || 
+                          communityData.admins.includes(userData.id) || 
+                          ! (communityData.joinPolicy == "request");
+
+        
 
         // Fetch repository data
         const repoPromises = communityData.repositories.map(repoId => fetchRepositoryById(repoId));
@@ -152,7 +158,12 @@ export default function CommunityPage() {
                 <AvatarFallback className="bg-orange-300 text-orange-800">{community.name.charAt(0)}</AvatarFallback>
               </Avatar>
               <div className="flex-1 text-center md:text-left">
-                <h1 className="text-3xl font-bold text-orange-800">{community.name}</h1>
+                <h1 className="text-3xl font-bold text-orange-800">
+                  {community.name}
+                  {community.joinPolicy == "request" && (
+                    <Lock className="inline-block ml-2 w-6 h-6 text-orange-500" />
+                  )}
+                </h1>
                 <p className="mt-2 text-orange-600 max-w-md">{community.description}</p>
                 <div className="mt-4 flex flex-wrap justify-center md:justify-start gap-4">
                   <Badge variant="secondary" className="flex items-center space-x-1 bg-orange-200 text-orange-800">
@@ -208,118 +219,145 @@ export default function CommunityPage() {
           </CardContent>
         </Card>
 
-        <div className="mb-6">
-          <Input
-            type="text"
-            placeholder="Search in community..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="border-orange-300 focus:border-orange-500 focus:ring-orange-500"
-          />
-        </div>
+        <div className={`relative ${!isMember && community.joinPolicy == "request" ? 'filter blur-sm pointer-events-none' : ''}`}>
+          <div className="mb-6">
+            <Input
+              type="text"
+              placeholder="Search in community..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="border-orange-300 focus:border-orange-500 focus:ring-orange-500"
+            />
+          </div>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-          <TabsList className="bg-white bg-opacity-70 backdrop-blur-sm">
-            <TabsTrigger value="about" className="data-[state=active]:bg-orange-200">About</TabsTrigger>
-            <TabsTrigger value="members" className="data-[state=active]:bg-orange-200">Members</TabsTrigger>
-            <TabsTrigger value="content" className="data-[state=active]:bg-orange-200">Content</TabsTrigger>
-          </TabsList>
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+            <TabsList className="bg-white bg-opacity-70 backdrop-blur-sm">
+              <TabsTrigger value="about" className="data-[state=active]:bg-orange-200">About</TabsTrigger>
+              <TabsTrigger value="members" className="data-[state=active]:bg-orange-200">Members</TabsTrigger>
+              <TabsTrigger value="content" className="data-[state=active]:bg-orange-200">Content</TabsTrigger>
+            </TabsList>
 
-          <TabsContent value="about">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              <Card className="bg-white bg-opacity-80 backdrop-blur-sm">
-                <CardHeader>
-                  <CardTitle className="text-orange-800">About {community.name}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-orange-700 mb-4">{community.description}</p>
-                  <h3 className="font-semibold text-orange-800 mb-2">Community Admins:</h3>
-                  <ul className="list-disc list-inside text-orange-700">
-                    {community.admins.map((adminId) => {
-                      const admin = members.find(member => member.id === adminId);
-                      return admin ? <li key={adminId}>{admin.name}</li> : null;
-                    })}
-                  </ul>
-                </CardContent>
-              </Card>
-
-              <Card className="bg-white bg-opacity-80 backdrop-blur-sm">
-                <CardHeader>
-                  <CardTitle className="text-orange-800">Top Viewed Repositories</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {repositories.length > 0 ? (
-                    <ul className="space-y-4">
-                      {repositories
-                        .sort((a, b) => b.views - a.views)
-                        .slice(0, 5)
-                        .map((repo) => (
-                          <RepositoryCard
-                            key={repo.id}
-                            repo={repo}
-                            onClick={() => router.push(`/repository/${repo.id}?userId=${user.id}`)}
-                          />
-                        ))}
+            <TabsContent value="about">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <Card className="bg-white bg-opacity-80 backdrop-blur-sm">
+                  <CardHeader>
+                    <CardTitle className="text-orange-800">About {community.name}</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-orange-700 mb-4">{community.description}</p>
+                    <h3 className="font-semibold text-orange-800 mb-2">Community Admins:</h3>
+                    <ul className="list-disc list-inside text-orange-700">
+                      {community.admins.map((adminId) => {
+                        const admin = members.find(member => member.id === adminId);
+                        return admin ? <li key={adminId}>{admin.name}</li> : null;
+                      })}
                     </ul>
-                  ) : (
-                    <p className="text-center text-orange-600 mt-4">No repositories yet in this community.</p>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-white bg-opacity-80 backdrop-blur-sm">
+                  <CardHeader>
+                    <CardTitle className="text-orange-800">Top Viewed Repositories</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {repositories.length > 0 ? (
+                      <ul className="space-y-4">
+                        {repositories
+                          .sort((a, b) => b.views - a.views)
+                          .slice(0, 5)
+                          .map((repo) => (
+                            <RepositoryCard
+                              key={repo.id}
+                              repo={repo}
+                              onClick={() => router.push(`/repository/${repo.id}?userId=${user.id}`)}
+                          
+                          
+                            />
+                          ))}
+                      </ul>
+                    ) : (
+                      <p className="text-center text-orange-600 mt-4">No repositories yet in this community.</p>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="members">
+              <Card className="bg-white bg-opacity-80 backdrop-blur-sm">
+                <CardHeader>
+                  <CardTitle className="text-orange-800">Community Members</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    
+                    {filteredMembers.map((member) => (
+                      <OwnerCard key={member.id} owner={member} viewingUserId={user.id} />
+                    ))}
+                  </div>
+                  {filteredMembers.length === 0 && (
+                    <p className="text-center text-orange-600 mt-4">No members found matching your search.</p>
                   )}
                 </CardContent>
               </Card>
-            </div>
-          </TabsContent>
+            </TabsContent>
 
-          <TabsContent value="members">
-            <Card className="bg-white bg-opacity-80 backdrop-blur-sm">
-              <CardHeader>
-                <CardTitle className="text-orange-800">Community Members</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {filteredMembers.map((member) => (
-                            <OwnerCard owner={member} viewingUserId={user.id} />
+            <TabsContent value="content">
+              <Card className="bg-white bg-opacity-80 backdrop-blur-sm">
+                <CardHeader>
+                  <CardTitle className="text-orange-800">Community Repositories</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {filteredRepositories.length > 0 ? (
+                    <div className="space-y-4">
+                      {filteredRepositories.map((repo) => (
+                        <RepositoryCard
+                          key={repo.id}
+                          repo={repo}
+                          onClick={() => router.push(`/repository/${repo.id}?userId=${user.id}`)}
+                          
+                        />
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-center text-orange-600 mt-4">No repositories found in this community.</p>
+                  )}
+                  {isAdmin && (
+                    <Button 
+                      className="mt-6 bg-orange-500 text-white hover:bg-orange-600"
+                      onClick={() => router.push(`/create-repository?communityId=${community.id}&userId=${user.id}`)}
+                    >
+                      <PlusCircle className="w-4 h-4 mr-2" />
+                      Add New Repository
+                    </Button>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
+        </div>
 
-                  ))}
-                </div>
-                {filteredMembers.length === 0 && (
-                  <p className="text-center text-orange-600 mt-4">No members found matching your search.</p>
-                )}
-              </CardContent>
+        {!isMember && community.joinPolicy == "request" && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 z-10">
+            <Card className="bg-white p-6">
+              <CardTitle className="text-xl font-bold mb-4">Join the Community</CardTitle>
+              <CardDescription>You need to be a member to view the community content.</CardDescription>
+              <Button 
+                className="mt-4 bg-orange-500 text-white hover:bg-orange-600"
+                onClick={handleJoinLeave}
+                
+              >
+                {community.joinPolicy === 'request' ? 'Request to Join' : 'Join Community'}
+              </Button>
+              <Link
+                href={`/dashboard?userId=${user.id}`}
+                className="ml-12 inline-flex items-center mb-4 text-orange-600 hover:text-orange-800 transition-colors duration-200"
+              >
+                Back to Dashboard
+              </Link>
             </Card>
-          </TabsContent>
-
-          <TabsContent value="content">
-            <Card className="bg-white bg-opacity-80 backdrop-blur-sm">
-              <CardHeader>
-                <CardTitle className="text-orange-800">Community Repositories</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {filteredRepositories.length > 0 ? (
-                  <div className="space-y-4">
-                    {filteredRepositories.map((repo) => (
-                      <RepositoryCard
-                        key={repo.id}
-                        repo={repo}
-                        onClick={() => router.push(`/repository/${repo.id}?userId=${user.id}`)}
-                      />
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-center text-orange-600 mt-4">No repositories found in this community.</p>
-                )}
-                {isAdmin && (
-                  <Button 
-                    className="mt-6 bg-orange-500 text-white hover:bg-orange-600"
-                    onClick={() => router.push(`/create-repository?communityId=${community.id}&userId=${user.id}`)}
-                  >
-                    <PlusCircle className="w-4 h-4 mr-2" />
-                    Add New Repository
-                  </Button>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
+          </div>
+        )}
       </main>
       {isAdmin && community && (
         <JoinRequestDialog

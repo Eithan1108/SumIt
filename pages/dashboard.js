@@ -1,19 +1,22 @@
-"use client";
+'use client'
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, FileText, FolderPlus, Users, Sparkles, ArrowRight, TrendingUp, Heart, Bookmark } from "lucide-react"
-import Header from "../components/Theme/Header";
-import Footer from "../components/Theme/Footer";
-import { SummaryCard } from "../components/Cards/SummaryCard";
-import { CommunityCard } from "../components/Cards/CommunityCard";
-import { RepositoryCard } from "../components/Cards/RepositoryCard";
-import UserStats from "../components/Theme/UserStats";
-import OnboardingTour from "../pages/OnboardingTour";
+import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
+import Link from "next/link"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Badge } from "@/components/ui/badge"
+import Input from "@/components/ui/SeconInput"
+import { Plus, FileText, FolderPlus, Users, Sparkles, ArrowRight, TrendingUp, Heart, Bookmark, Search, Star, Eye, ThumbsUp, GitFork, FileCode, UserPlus, Award, Lock } from "lucide-react"
+import Header from "@/components/Theme/Header"
+import Footer from "@/components/Theme/Footer"
+import { SummaryCard } from "@/components/Cards/SummaryCard"
+import { CommunityCard } from "@/components/Cards/CommunityCard"
+import { RepositoryCard } from "@/components/Cards/RepositoryCard"
+import UserStats from "@/components/Theme/UserStats"
+import OnboardingTour from "@/pages/OnboardingTour"
 import {
   fetchUserById,
   fetchSummaries,
@@ -21,35 +24,34 @@ import {
   fetchSavedSummaries,
   fetchRepositories,
   fetchCommunities,
-} from "@/lib/db";
+} from "@/lib/db"
 import RandomLoadingComponent from '@/components/ui/Loading'
 
-
 export default function Dashboard() {
-  const [searchTerm, setSearchTerm] = useState("");
+  const [searchTerm, setSearchTerm] = useState("")
   const [searchResults, setSearchResults] = useState({
     summaries: [],
     repositories: [],
     communities: [],
-  });
-  const router = useRouter();
-  const [activeTab, setActiveTab] = useState("recent");
-  const [isNewUser, setIsNewUser] = useState(true);
-  const [user, setUser] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [allSummaries, setAllSummaries] = useState([]);
-  const [likedSummaries, setLikedSummaries] = useState([]);
-  const [savedSummaries, setSavedSummaries] = useState([]);
-  const [repositories, setRepositories] = useState([]);
-  const [communities, setCommunities] = useState([]);
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  })
+  const router = useRouter()
+  const [activeTab, setActiveTab] = useState("recent")
+  const [isNewUser, setIsNewUser] = useState(true)
+  const [user, setUser] = useState(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [allSummaries, setAllSummaries] = useState([])
+  const [likedSummaries, setLikedSummaries] = useState([])
+  const [savedSummaries, setSavedSummaries] = useState([])
+  const [repositories, setRepositories] = useState([])
+  const [communities, setCommunities] = useState([])
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false)
 
   useEffect(() => {
     const fetchData = async () => {
-      setIsLoading(true);
+      setIsLoading(true)
       try {
-        const urlParams = new URLSearchParams(window.location.search);
-        const userId = urlParams.get("userId");
+        const urlParams = new URLSearchParams(window.location.search)
+        const userId = urlParams.get("userId")
         const [
           foundUser,
           summariesData,
@@ -64,79 +66,72 @@ export default function Dashboard() {
           userId ? fetchSavedSummaries(userId) : [],
           fetchRepositories(),
           fetchCommunities(),
-        ]);
+        ])
         if (userId) {
-          setUser(foundUser);
-          setIsNewUser(foundUser?.status === "new");
-          setLikedSummaries(likedData);
-          setSavedSummaries(savedData);
+          setUser(foundUser)
+          setIsNewUser(foundUser?.status === "new")
+          setLikedSummaries(likedData)
+          setSavedSummaries(savedData)
         }
-        setAllSummaries(summariesData);
-        setRepositories(reposData);
-        setCommunities(communitiesData);
+        setAllSummaries(summariesData)
+        setRepositories(reposData)
+        setCommunities(communitiesData)
       } catch (error) {
-        console.error("Failed to fetch data:", error);
+        console.error("Failed to fetch data:", error)
       } finally {
-        setIsLoading(false);
+        setIsLoading(false)
       }
-    };
+    }
 
-    fetchData();
-  }, []);
-
-  if (isLoading) {
-    return <RandomLoadingComponent />
-  }
+    fetchData()
+  }, [])
 
   const handleSearch = (term) => {
-    setSearchTerm(term);
-    const lowercaseTerm = term.toLowerCase();
+    setSearchTerm(term)
+    const lowercaseTerm = term.toLowerCase()
 
     const filteredSummaries = allSummaries.filter(
       (summary) =>
-        summary.title.toLowerCase().includes(lowercaseTerm) ||
-        summary.author.toLowerCase().includes(lowercaseTerm),
-    );
+        (summary.title.toLowerCase().includes(lowercaseTerm) ||
+        summary.author.toLowerCase().includes(lowercaseTerm))
+        && (!summary.isPrivate || summary.owner === user?.id)
+    )
 
     const filteredRepositories = repositories.filter(
       (repo) =>
         repo.name.toLowerCase().includes(lowercaseTerm) ||
-        (repo.description?.toLowerCase() ?? "").includes(lowercaseTerm),
-    );
+        (repo.description?.toLowerCase() ?? "").includes(lowercaseTerm)
+    )
 
     const filteredCommunities = communities.filter(
       (community) =>
         community.name.toLowerCase().includes(lowercaseTerm) ||
-        (community.description?.toLowerCase() ?? "").includes(lowercaseTerm),
-    );
+        (community.description?.toLowerCase() ?? "").includes(lowercaseTerm)
+    )
 
     setSearchResults({
       summaries: filteredSummaries,
       repositories: filteredRepositories,
       communities: filteredCommunities,
-    });
-  };
+    })
+  }
 
   const hasSearchResults =
     searchResults.summaries.length > 0 ||
     searchResults.repositories.length > 0 ||
-    searchResults.communities.length > 0;
+    searchResults.communities.length > 0
 
   const navigateToSummary = (summary) => {
-    if (user) {
-      router.push(`/summary/${summary.id}?userId=${user.id}`);
-    }
-  };
+    router.push(`/summary/${summary.id}?userId=${user?.id}`)
+  }
 
   const navigateToRepository = (repo) => {
-    if (user) {
-      router.push(`/repository/${repo.id}?userId=${user.id}`);
-    }
-  };
+    router.push(`/repository/${repo.id}?userId=${user?.id}`)
+  }
 
   const navigateToCommunity = (community) => {
-    router.push(`/community/${community.id}?userId=${user.id}`);
-  };
+    router.push(`/community/${community.id}?userId=${user?.id}`)
+  }
 
   const onboardingSteps = [
     {
@@ -163,105 +158,115 @@ export default function Dashboard() {
       image: "/Images/StatComponnent.png",
     },
     {
-      title: "Search for terms",
-      content:
-        "Leveraging cutting-edge AI technology, we meticulously analyze your summaries to extract key terms and concepts. Our system then intelligently maps out the connections between these elements, providing you with comprehensive insights and valuable data to enhance your understanding and productivity.",
-      target: ".communities-card",
-      image: "/Images/SearchTerm2.png",
-    },
-    {
       title: "Discover Repositories",
       content:
         "Explore and contribute to popular repositories on various topics. Repositories are collections of summaries organized by theme or subject matter.",
       target: ".repositories-card",
       image: "/Images/repoPage.png",
     },
-  ];
+    {
+      title: "AI Features Coming Soon",
+      content:
+        "We're working on exciting new AI features to enhance your experience. Stay tuned for AI-generated summaries, smart recommendations, and more!",
+      target: "body",
+      
+    },
+  ]
 
   const createOptions = [
     {
       name: "Summary",
       icon: FileText,
-      color: "bg-orange-500",
-      hover: "hover:bg-orange-600",
       path: "/create-summary",
     },
     {
       name: "Repository",
       icon: FolderPlus,
-      color: "bg-blue-500",
-      hover: "hover:bg-blue-600",
       path: "/create-repository",
     },
     {
       name: "Community",
       icon: Users,
-      color: "bg-green-500",
-      hover: "hover:bg-green-600",
       path: "/Create_Community",
     },
-  ];
+  ]
 
   const handleCreate = (path) => {
-    router.push(`${path}?userId=${user?.id}`);
-    setIsDropdownOpen(false);
-  };
+    router.push(`${path}?userId=${user?.id}`)
+    setIsDropdownOpen(false)
+  }
 
   const handleOnboardingComplete = () => {
-    localStorage.setItem("hasCompletedOnboarding", "true");
-    setIsNewUser(false);
-  };
+    localStorage.setItem("hasCompletedOnboarding", "true")
+    setIsNewUser(false)
+  }
 
   const popularCommunities = communities.filter(
-    (community) => community.totalMembers > 400,
-  );
+    (community) => community.totalMembers > 400
+  )
   const myCommunities = communities.filter(
-    (community) => user && community.members.includes(user.id),
-  );
+    (community) => user && community.members.includes(user.id)
+  )
 
-  
+  const filterSummaries = (summaries) => {
+    return summaries.filter(summary => !summary.isPrivate || summary.owner === user?.id)
+  }
 
   return (
     <div className="min-h-screen bg-orange-50">
       <Header onSearch={handleSearch} userId={user?.id} />
 
       <main className="container mx-auto px-4 py-8">
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold text-orange-700">
-            Welcome back, {user ? user.name : "User"}
-          </h1>
-          <div className="relative">
-          <Button
-          onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-          className="bg-orange-500 text-white hover:bg-orange-600"
-        >
-          <Plus className="mr-2 h-5 w-5 inline-block" />
-          Create New
-        </Button>
-        {isDropdownOpen && (
-          <Card className="absolute right-0 mt-2 w-48 z-10 shadow-lg">
-            <CardContent className="p-2">
-              {createOptions.map((option) => (
+        <Card className="mb-8 bg-white bg-opacity-80 backdrop-blur-sm shadow-xl">
+          <CardContent className="pt-6">
+            <div className="flex justify-between items-center">
+              <h1 className="text-3xl font-bold text-orange-800">
+                Welcome back, {user ? user.name : "User"}
+              </h1>
+              <div className="relative">
                 <Button
-                  key={option.name}
-                  onClick={() => handleCreate(option.path)}
-                  variant="ghost"
-                  className="w-full justify-start mb-1 text-gray-700 hover:text-orange-600 hover:bg-orange-50"
+                  onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                  className="bg-orange-500 text-white hover:bg-orange-600"
                 >
-                  <option.icon className="mr-2 h-5 w-5" />
-                  {option.name}
+                  <Plus className="mr-2 h-5 w-5 inline-block" />
+                  Create New
                 </Button>
-              ))}
-            </CardContent>
-          </Card>
-        )}
-      </div>
-        </div>
+                {isDropdownOpen && (
+                  <Card className="absolute right-0 mt-2 w-48 z-10 bg-white bg-opacity-80 backdrop-blur-sm shadow-lg">
+                    <CardContent className="p-2">
+                      {createOptions.map((option) => (
+                        <Button
+                          key={option.name}
+                          onClick={() => handleCreate(option.path)}
+                          variant="ghost"
+                          className="w-full justify-start mb-1 text-orange-700 hover:text-orange-800 hover:bg-orange-100"
+                        >
+                          <option.icon className="mr-2 h-5 w-5" />
+                          {option.name}
+                        </Button>
+                      ))}
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
+            </div>
+
+            <div className="mt-6">
+              <Input
+                type="text"
+                placeholder="Search..."
+                value={searchTerm}
+                onChange={(e) => handleSearch(e.target.value)}
+                className="border-orange-300 focus:border-orange-500 focus:ring-orange-500"
+              />
+            </div>
+          </CardContent>
+        </Card>
 
         {searchTerm !== "" && (
-          <Card className="mb-8 shadow-lg hover:shadow-xl transition-shadow duration-300">
+          <Card className="mb-8 bg-white bg-opacity-80 backdrop-blur-sm shadow-xl">
             <CardHeader>
-              <CardTitle className="text-2xl text-orange-700">Search Results for "{searchTerm}"</CardTitle>
+              <CardTitle className="text-2xl text-orange-800">Search Results for "{searchTerm}"</CardTitle>
             </CardHeader>
             <CardContent>
               {hasSearchResults ? (
@@ -290,6 +295,9 @@ export default function Dashboard() {
                           key={result.id}
                           repo={result}
                           onClick={() => navigateToRepository(result)}
+                          isPrivate={result.isPrivate}
+                          isOwner={result.owner === user?.id}
+                          role={result.owner === user?.id ? "owner" : (result.collaborators && result.collaborators.includes(user?.id)) ? "collaborator" : "viewer"}
                         />
                       ))}
                     </div>
@@ -311,8 +319,7 @@ export default function Dashboard() {
                 </>
               ) : (
                 <p className="text-orange-600">
-                  No results found for "{searchTerm}". Try a different search
-                  term.
+                  No results found for "{searchTerm}". Try a different search term.
                 </p>
               )}
             </CardContent>
@@ -321,9 +328,9 @@ export default function Dashboard() {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2 space-y-8">
-            <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300">
-            <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle className="text-2xl text-orange-700">Your Summaries</CardTitle>
+            <Card className="bg-white bg-opacity-80 backdrop-blur-sm shadow-xl">
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle className="text-2xl text-orange-800">Your Summaries</CardTitle>
                 <Button
                   onClick={() => router.push(`all-summaries?userId=${user?.id}` )}
                   variant="ghost"
@@ -335,31 +342,31 @@ export default function Dashboard() {
               </CardHeader>
               <CardContent>
                 <Tabs value={activeTab} onValueChange={setActiveTab}>
-                  <TabsList className="mb-4 bg-orange-100 p-1 rounded-lg">
-                    <TabsTrigger value="recent" className="data-[state=active]:bg-white data-[state=active]:text-orange-700">
+                  <TabsList className="bg-orange-100 mb-3">
+                    <TabsTrigger value="recent" className="data-[state=active]:bg-orange-200">
                       <Sparkles className="w-4 h-4 mr-2" />
                       Recent
                     </TabsTrigger>
-                    <TabsTrigger value="popular" className="data-[state=active]:bg-white data-[state=active]:text-orange-700">
-                      <TrendingUp className="w-4 h-4 mr-2" />
+                    <TabsTrigger value="popular" className="data-[state=active]:bg-orange-200">
+                      <TrendingUp className="w-4 h-4  mr-2" />
                       Popular
                     </TabsTrigger>
-                    <TabsTrigger value="liked" className="data-[state=active]:bg-white data-[state=active]:text-orange-700">
+                    <TabsTrigger value="liked" className="data-[state=active]:bg-orange-200">
                       <Heart className="w-4 h-4 mr-2" />
                       Liked
                     </TabsTrigger>
-                    <TabsTrigger value="saved" className="data-[state=active]:bg-white data-[state=active]:text-orange-700">
+                    <TabsTrigger value="saved" className="data-[state=active]:bg-orange-200">
                       <Bookmark className="w-4 h-4 mr-2" />
                       Saved
                     </TabsTrigger>
                   </TabsList>
                   <TabsContent value="recent">
                     {allSummaries && allSummaries.length > 0 ? (
-                      allSummaries
+                      filterSummaries(allSummaries)
                         .sort(
                           (a, b) =>
-                            new Date(b.dateCreated).getTime() -
-                            new Date(a.dateCreated).getTime()
+                            new Date(b.dateCreated).getTime() 
+                            - new Date(a.dateCreated).getTime()
                         )
                         .slice(0, 3)
                         .map((summary) => (
@@ -373,10 +380,9 @@ export default function Dashboard() {
                       <p className="text-orange-600">No recent summaries available.</p>
                     )}
                   </TabsContent>
-
                   <TabsContent value="popular">
                     {allSummaries && allSummaries.length > 0 ? (
-                      allSummaries
+                      filterSummaries(allSummaries)
                         .sort((a, b) => b.views - a.views)
                         .slice(0, 3)
                         .map((summary) => (
@@ -390,32 +396,32 @@ export default function Dashboard() {
                       <p className="text-orange-600">No popular summaries available.</p>
                     )}
                   </TabsContent>
-
                   <TabsContent value="liked">
                     {isLoading ? (
                       <p className="text-orange-600">Loading liked summaries...</p>
                     ) : likedSummaries && likedSummaries.length > 0 ? (
-                      likedSummaries.map((summary) => (
-                        <SummaryCard
-                          key={summary.id}
-                          summary={summary}
-                          onClick={() => navigateToSummary(summary)}
-                        />
-                      ))
+                      filterSummaries(likedSummaries)
+                        .map((summary) => (
+                          <SummaryCard
+                            key={summary.id}
+                            summary={summary}
+                            onClick={() => navigateToSummary(summary)}
+                          />
+                        ))
                     ) : (
                       <p className="text-orange-600">No liked summaries available.</p>
                     )}
                   </TabsContent>
-
                   <TabsContent value="saved">
                     {savedSummaries && savedSummaries.length > 0 ? (
-                      savedSummaries.map((summary) => (
-                        <SummaryCard
-                          key={summary.id}
-                          summary={summary}
-                          onClick={() => navigateToSummary(summary)}
-                        />
-                      ))
+                      filterSummaries(savedSummaries)
+                        .map((summary) => (
+                          <SummaryCard
+                            key={summary.id}
+                            summary={summary}
+                            onClick={() => navigateToSummary(summary)}
+                          />
+                        ))
                     ) : (
                       <p className="text-orange-600">No saved summaries available.</p>
                     )}
@@ -424,9 +430,9 @@ export default function Dashboard() {
               </CardContent>
             </Card>
 
-            <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300">
-            <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle className="text-2xl text-orange-700">Popular Repositories</CardTitle>
+            <Card className="bg-white bg-opacity-80 backdrop-blur-sm shadow-xl">
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle className="text-2xl text-orange-800">Your Repositories</CardTitle>
                 <Button
                   onClick={() => router.push(`all-repositories?userId=${user?.id}` )}
                   variant="ghost"
@@ -445,12 +451,15 @@ export default function Dashboard() {
                       <RepositoryCard
                         key={repo.id}
                         repo={repo}
+                        isPrivate={repo.isPrivate}
+                        isOwner={repo.owner === user?.id}
+                        role={repo.owner === user?.id ? "owner" : (repo.collaborators && repo.collaborators.includes(user?.id)) ? "collaborator" : "viewer"}
                         onClick={() => navigateToRepository(repo)}
                       />
                     ))
                 ) : (
                   <p className="text-orange-600">
-                    No popular repositories available at the moment.
+                    No repositories available at the moment.
                   </p>
                 )}
               </CardContent>
@@ -459,49 +468,38 @@ export default function Dashboard() {
 
           <div className="space-y-8">
             {isLoading ? (
-              <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300">
-                <CardContent className="p-6">
+              <Card className="bg-white bg-opacity-80 backdrop-blur-sm shadow-xl">
+                <CardContent>
                   <p className="text-orange-600">Loading user stats...</p>
                 </CardContent>
               </Card>
             ) : user ? (
               <UserStats user={user} />
             ) : (
-              <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300">
-                <CardContent className="p-6">
+              <Card className="bg-white bg-opacity-80 backdrop-blur-sm shadow-xl">
+                <CardContent>
                   <p className="text-orange-600">User stats not available</p>
                 </CardContent>
               </Card>
             )}
 
-            <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300">
-              <CardHeader>
-                <CardTitle className="text-2xl text-orange-700">Popular Communities</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {popularCommunities && popularCommunities.length > 0 ? (
-                  popularCommunities.map((community) => (
-                    <CommunityCard
-                      key={community.id}
-                      community={community}
-                      onClick={() => navigateToCommunity(community)}
-                    />
-                  ))
-                ) : (
-                  <p className="text-orange-600">
-                    No popular communities available at the moment.
-                  </p>
-                )}
-              </CardContent>
-            </Card>
+            
 
-            <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300">
-              <CardHeader>
-                <CardTitle className="text-2xl text-orange-700">My Communities</CardTitle>
+            <Card className="bg-white bg-opacity-80 backdrop-blur-sm shadow-xl">
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle className="text-2xl text-orange-800">Your Communities</CardTitle>
+                <Button
+                  onClick={() => router.push(`all-communities?userId=${user?.id}`)}
+                  variant="ghost"
+                  className="text-orange-600 hover:text-orange-700 hover:bg-orange-100"
+                >
+                  View All
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
               </CardHeader>
               <CardContent>
                 {myCommunities && myCommunities.length > 0 ? (
-                  myCommunities.map((community) => (
+                  myCommunities.slice(0, 3).map((community) => (
                     <CommunityCard
                       key={community.id}
                       community={community}
@@ -527,5 +525,5 @@ export default function Dashboard() {
         />
       )}
     </div>
-  );
+  )
 }

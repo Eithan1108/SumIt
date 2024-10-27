@@ -1,10 +1,16 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import { Button } from "@/components/ui/button"
 import { X, UserMinus } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { fetchUserById } from '@/lib/db'
+import OwnerCard from '@/components/Cards/OwnerCard'
+import { Repository, RepositoryItem, RepositoryFolder, User } from '@/lib/types'
+
+
 
 interface CollaboratorInvitationProps {
+  userId: string
   collaborators: string[]
   pendingCollaborators: string[]
   onRemoveCollaborator: (userId: string) => void
@@ -12,11 +18,27 @@ interface CollaboratorInvitationProps {
 }
 
 export const CollaboratorInvitation: React.FC<CollaboratorInvitationProps> = ({
+  userId,
   collaborators,
   pendingCollaborators,
   onRemoveCollaborator,
   onCancelInvitation
 }) => {
+
+  const [collaboratorUsers, setCollaboratorUsers] = useState<User[]>([])
+  const [pendingUsers, setPendingUsers] = useState<User[]>([])
+
+  useEffect(() => {
+    const fetchUsers = async () => {
+      const collaboratorData = await Promise.all(collaborators.map(id => fetchUserById(id)))
+      const pendingData = await Promise.all(pendingCollaborators.map(id => fetchUserById(id)))
+      setCollaboratorUsers(collaboratorData.filter(Boolean) as User[])
+      setPendingUsers(pendingData.filter(Boolean) as User[])
+    }
+
+    fetchUsers()
+  }, [collaborators, pendingCollaborators])
+
   return (
     <div className="space-y-6">
       <Card>
@@ -26,20 +48,14 @@ export const CollaboratorInvitation: React.FC<CollaboratorInvitationProps> = ({
         <CardContent>
           {collaborators.length > 0 ? (
             <ul className="space-y-3">
-              {collaborators.map((userId) => (
-                <li key={userId} className="flex items-center justify-between bg-orange-50 p-3 rounded-lg shadow-sm">
-                  <div className="flex items-center space-x-3">
-                    <Avatar>
-                      <AvatarImage src={`https://api.dicebear.com/6.x/initials/svg?seed=${userId}`} />
-                      <AvatarFallback>{userId.slice(0, 2).toUpperCase()}</AvatarFallback>
-                    </Avatar>
-                    <span className="font-medium text-orange-800">{userId}</span>
-                  </div>
+              {collaboratorUsers.map((owner) => (
+                <li key={owner.id} className="flex items-center justify-between bg-orange-50 p-3 rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200">
+                  <OwnerCard owner={owner} viewingUserId={userId} />
                   <Button
-                    onClick={() => onRemoveCollaborator(userId)}
+                    onClick={() => onRemoveCollaborator(owner.id)}
                     variant="destructive"
                     size="sm"
-                    className="bg-red-500 hover:bg-red-600 text-white"
+                    className="ml-3 bg-red-500 hover:bg-red-600 text-white transition-colors duration-200"
                   >
                     <UserMinus className="h-4 w-4 mr-2" />
                     Remove
@@ -60,16 +76,15 @@ export const CollaboratorInvitation: React.FC<CollaboratorInvitationProps> = ({
         <CardContent>
           {pendingCollaborators.length > 0 ? (
             <ul className="space-y-3">
-              {pendingCollaborators.map((userId) => (
-                <li key={userId} className="flex items-center justify-between bg-orange-50 p-3 rounded-lg shadow-sm">
-                  <div className="flex items-center space-x-3">
-                    <Avatar>
-                      <AvatarImage src={`https://api.dicebear.com/6.x/initials/svg?seed=${userId}`} />
-                      <AvatarFallback>{userId.slice(0, 2).toUpperCase()}</AvatarFallback>
-                    </Avatar>
-                    <span className="font-medium text-orange-800">{userId}</span>
-                  </div>
-                  <Button onClick={() => onCancelInvitation(userId)} variant="outline" size="sm">
+              {pendingUsers.map((owner) => (
+                <li key={owner.id} className="flex items-center justify-between bg-orange-50 p-3 rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200">
+                  <OwnerCard owner={owner} viewingUserId={userId} />
+                  <Button 
+                    onClick={() => onCancelInvitation(owner.id)} 
+                    variant="outline" 
+                    size="sm"
+                    className="ml-3 h-17 border-orange-500 text-orange-500 hover:bg-orange-100 transition-colors duration-200"
+                  >
                     <X className="h-4 w-4 mr-2" />
                     Cancel Invitation
                   </Button>

@@ -144,14 +144,18 @@ import bcrypt from 'bcryptjs'
     }
   }
 
-  export async function fetchRepositories(): Promise<Repository[]> {
+  export async function fetchRepositories(userId?: string): Promise<Repository[]> {
     try {
       const response = await fetch('http://localhost:5000/repositories');
       if (!response.ok) {
         throw new Error('Failed to fetch repositories');
       }
       const repositories: Repository[] = await response.json();
-      return repositories;
+      
+      // Filter out private repositories if userId is not provided
+      return userId 
+        ? repositories 
+        : repositories.filter(repo => !repo.isPrivate);
     } catch (error) {
       console.error('Error fetching repositories:', error);
       throw error;
@@ -160,9 +164,15 @@ import bcrypt from 'bcryptjs'
   
   export async function fetchRepositoryById(id: string): Promise<Repository | null> {
     try {
-      const repositories = await fetchRepositories();
-      const repository = repositories.find(repo => repo.id === id);
-      return repository || null;
+      const response = await fetch(`http://localhost:5000/repositories/${id}`);
+      if (!response.ok) {
+        if (response.status === 404) {
+          return null;
+        }
+        throw new Error('Failed to fetch repository');
+      }
+      const repository: Repository = await response.json();
+      return repository;
     } catch (error) {
       console.error(`Error fetching repository with id ${id}:`, error);
       throw error;
@@ -986,7 +996,7 @@ import bcrypt from 'bcryptjs'
       }
       const userData: User = await userResponse.json();
       
-      userData.summariesCount += 1;
+      userData.summariesCount = (userData.summariesCount || 0) + 1;
   
       // Fetch all users
       const allUsersResponse = await fetch('http://localhost:5000/users');
@@ -994,21 +1004,25 @@ import bcrypt from 'bcryptjs'
         throw new Error('Failed to fetch all users');
       }
       const allUsers: User[] = await allUsersResponse.json();
-  
+      console.log("Wayyyyyyyy1?")
+      if(!newSummary.isPrivate){
+        console.log("Wayyyyyyyy2?")
       // Create notifications for followers
       const followerNotifications = allUsers
-        .filter(user => user.followingId.includes(newSummary.owner))
+        .filter(user => user.followingId && user.followingId.includes(newSummary.owner))
         .map(async (follower) => {
           const newNotification: Omit<Notification, 'id'> = {
             date: new Date().toISOString(),
             read: false,
             content: `${userData.name} posted a new summary: "${addedSummary.title}"`,
             link: `/summary/${addedSummary.id}`,
-            sender: userData.username,
+            sender: userData.name,
             type: 'summary'
           };
           await addNotification(follower.id, newNotification);
         });
+      
+      
   
       const updatePromises = [
         fetch(`http://localhost:5000/users/${newSummary.owner}`, {
@@ -1020,8 +1034,10 @@ import bcrypt from 'bcryptjs'
         }),
         ...followerNotifications
       ];
+
   
       await Promise.all(updatePromises);
+    }
   
       // Handle repository update separately
       if (repoId) {
@@ -1052,6 +1068,7 @@ import bcrypt from 'bcryptjs'
         lastUpdated: summary.lastUpdated,
         views: summary.views,
         likes: summary.likes,
+        isPrivate: summary.isPrivate,
         comments: summary.comments.length,
         path: [],
       };
@@ -1317,7 +1334,7 @@ export async function inviteCollaborator(repoId: string, username: string): Prom
     content: `You've been invited to collaborate on the repository "${repo.name}"`,
     date: new Date().toISOString(),
     read: false,
-    sender: repo.owner,
+    sender: repo.author,
     link: `/collaboration-request/${repoId}?userId=${user.id}`
   };
 
@@ -1836,34 +1853,37 @@ export async function addRepository(newRepo: Omit<Repository, 'id' | 'collaborat
 
     const createdRepo: Repository = await response.json();
 
-    // If a community is specified, update the community's repositories
     if (communityId) {
-      const communityResponse = await fetch(`http://localhost:5000/communities/${communityId}`);
-      if (!communityResponse.ok) {
-        throw new Error('Failed to fetch community data');
-      }
-      const community: Community = await communityResponse.json();
-      
-      community.repositories.push(createdRepo.id);
-      community.totalContent += 1;
-
-      const updateCommunityResponse = await fetch(`http://localhost:5000/communities/${communityId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(community),
-      });
-
-      if (!updateCommunityResponse.ok) {
-        throw new Error('Failed to update community data');
-      }
+      await updateCommunityRepositories(communityId, createdRepo.id);
     }
 
     return createdRepo;
   } catch (error) {
     console.error('Error creating new repository:', error);
     throw error;
+  }
+}
+
+async function updateCommunityRepositories(communityId: string, repoId: string): Promise<void> {
+  const communityResponse = await fetch(`http://localhost:5000/communities/${communityId}`);
+  if (!communityResponse.ok) {
+    throw new Error('Failed to fetch community data');
+  }
+  const community: Community = await communityResponse.json();
+  
+  community.repositories.push(repoId);
+  community.totalContent += 1;
+
+  const updateCommunityResponse = await fetch(`http://localhost:5000/communities/${communityId}`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(community),
+  });
+
+  if (!updateCommunityResponse.ok) {
+    throw new Error('Failed to update community data');
   }
 }
 
@@ -2000,6 +2020,24 @@ export async function markNotificationAsRead(notificationId: string): Promise<No
     return updatedNotification;
   } catch (error) {
     console.error('Error marking notification as read:', error);
+    throw error;
+  }
+}
+
+export async function fetchAllUserRepositories(userId: string): Promise<Repository[]> {
+  try {
+    const response = await fetch('http://localhost:5000/repositories');
+    if (!response.ok) {
+      throw new Error('Failed to fetch repositories');
+    }
+    const allRepositories: Repository[] = await response.json();
+    
+    return allRepositories.filter(repo => 
+      repo.owner === userId || 
+      (repo.collaborators && repo.collaborators.includes(userId))
+    );
+  } catch (error) {
+    console.error('Error fetching all user repositories:', error);
     throw error;
   }
 }

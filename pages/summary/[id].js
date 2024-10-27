@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import Link from 'next/link'
-import { Download, Eye, ArrowLeft, ThumbsUp, MessageSquare, Share2, Search, AlertCircle, Send, RefreshCw, Bookmark, User, Calendar } from "lucide-react"
+import { Download, Eye, ArrowLeft, ThumbsUp, MessageSquare, Share2, Search, AlertCircle, Send, RefreshCw, Bookmark, User, Calendar, Sparkles  } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -13,7 +13,6 @@ import Header from "../../components/Theme/Header"
 import Footer from "../../components/Theme/Footer"
 import OwnerCard from '@/components/Cards/OwnerCard'
 import { fetchSummaryById, fetchUserById, addCommentToSummary, likeSummary, saveSummary, viewSummary, fetchCommentsByIds } from "@/lib/db"
-
 
 export default function SummaryPage() {
   const router = useRouter()
@@ -218,15 +217,15 @@ export default function SummaryPage() {
       <main className="flex-grow container mx-auto px-4 py-8">
         <Link
           href={`/dashboard?userId=${user.id}`}
-          className="inline-flex items-center mb-4 text-orange-600 hover:text-orange-800"
+          className="inline-flex items-center mb-4 text-orange-600 hover:text-orange-800 transition-colors duration-200"
         >
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back to Dashboard
         </Link>
         
-        <Card className="mb-6">
+        <Card className="mb-6 bg-white bg-opacity-80 backdrop-blur-sm shadow-xl">
           <CardHeader>
-            <CardTitle className="text-3xl font-bold text-orange-700">{summary.title}</CardTitle>
+            <CardTitle className="text-3xl font-bold text-orange-800">{summary.title}</CardTitle>
             <div className="flex items-center space-x-2 text-sm text-orange-600">
               <span>By {summary.author}</span>
               <span>•</span>
@@ -249,51 +248,59 @@ export default function SummaryPage() {
                 <span className="flex items-center text-orange-700"><ThumbsUp className="mr-1 h-4 w-4" /> {summary.likes}</span>
                 <span className="flex items-center text-orange-700"><MessageSquare className="mr-1 h-4 w-4" /> {summary.comments.length}</span>
               </div>
-              <Button onClick={handleDownload} className="bg-orange-500 hover:bg-orange-600 text-white">
+              <Button onClick={handleDownload} className="bg-orange-500 hover:bg-orange-600 text-white transition-colors duration-200">
                 <Download className="mr-2 h-4 w-4" /> Download Summary
               </Button>
             </div>
             <div className="flex flex-wrap gap-2 mb-4">
-              <Button onClick={handleLike} variant={isLiked ? "secondary" : "outline"} className="flex-1 sm:flex-none">
+              <Button onClick={handleLike} variant={isLiked ? "secondary" : "outline"} className="flex-1 sm:flex-none border-orange-300 text-orange-600 hover:bg-orange-100 transition-colors duration-200">
                 <ThumbsUp className="mr-2 h-4 w-4" /> {isLiked ? 'Liked' : 'Like'}
               </Button>
-              <Button onClick={() => setIsCommentDialogOpen(true)} variant="outline" className="flex-1 sm:flex-none">
-                <MessageSquare className="mr-2 h-4 w-4" /> Comment
-              </Button>
-              <Button onClick={handleSave} variant={isSaved ? "secondary" : "outline"} className="flex-1 sm:flex-none">
+              <Button onClick={handleSave} variant={isSaved ? "secondary" : "outline"} className="flex-1 sm:flex-none border-orange-300 text-orange-600 hover:bg-orange-100 transition-colors duration-200">
                 <Bookmark className="mr-2 h-4 w-4" /> {isSaved ? 'Saved' : 'Save'}
               </Button>
-              <Button onClick={() => setIsShareDialogOpen(true)} variant="outline" className="flex-1 sm:flex-none">
+              <Button onClick={() => setIsCommentDialogOpen(true)} variant="outline" className="flex-1 sm:flex-none border-orange-300 text-orange-600 hover:bg-orange-100 transition-colors duration-200">
+                <MessageSquare className="mr-2 h-4 w-4" /> Comment
+              </Button>
+
+              <Button onClick={() => setIsShareDialogOpen(true)} variant="outline" className="flex-1 sm:flex-none border-orange-300 text-orange-600 hover:bg-orange-100 transition-colors duration-200">
                 <Share2 className="mr-2 h-4 w-4" /> Share
               </Button>
             </div>
-            <div className="h-48 overflow-y-auto rounded-md border border-orange-200 p-4 mb-4">
+            <div className="h-48 overflow-y-auto rounded-md border border-orange-200 p-4 mb-4 bg-white">
               <p className="text-orange-800">{summary.description}</p>
             </div>
-            <div className="flex gap-2 mb-4">
-              <Input
-                type="text"
-                placeholder="Search for a term..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="flex-grow border border-orange-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
-              />
-              <Button onClick={handleSearch} className="bg-orange-500 hover:bg-orange-600 text-white">
-                <Search className="mr-2 h-4 w-4" /> Search
-              </Button>
-            </div>
+            <Card className="mb-6 bg-white bg-opacity-80 backdrop-blur-sm shadow-xl border-2 border-orange-300">
+          <CardHeader className="bg-gradient-to-r from-orange-100 to-orange-200">
+            <CardTitle className="text-2xl font-bold text-orange-800 flex items-center">
+              <Sparkles className="mr-2 h-6 w-6 text-orange-600" />
+              AI Features Coming Soon!
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-6">
+            <p className="text-orange-700 mb-4">
+              We're excited to announce that cutting-edge AI features are on their way to enhance your summary experience!
+            </p>
+            <ul className="list-disc list-inside space-y-2 text-orange-600">
+              <li>AI-powered summary generation</li>
+              <li>Intelligent keyword extraction</li>
+              <li>Automated tagging suggestions</li>
+              <li>Smart content recommendations</li>
+            </ul>
+          </CardContent>
+        </Card>
             {searchResult && (
-              <div className="mb-4 border border-orange-200 rounded-lg p-4">
-                <h3 className="text-lg font-semibold text-orange-700 mb-2">{searchResult.term}</h3>
-                <p className="text-orange-800 mb-2">{searchResult.definition}</p>
+              <div className="mb-4 border border-orange-200 rounded-lg p-4 bg-white">
+                <h3 className="text-lg font-semibold text-orange-800 mb-2">{searchResult.term}</h3>
+                <p className="text-orange-700 mb-2">{searchResult.definition}</p>
                 <div>
-                  <h4 className="font-semibold text-orange-700 mb-1">Related Terms:</h4>
+                  <h4 className="font-semibold text-orange-800 mb-1">Related Terms:</h4>
                   <div className="flex flex-wrap gap-2">
                     {searchResult.relatedTerms.map(term => (
                       <Button
                         key={term}
                         variant="outline"
-                        className="border border-orange-500 text-orange-700 px-2 py-1 rounded-full text-sm hover:bg-orange-100"
+                        className="border border-orange-300 text-orange-600 px-2 py-1 rounded-full text-sm hover:bg-orange-100 transition-colors duration-200"
                         onClick={() => {
                           setSearchTerm(term);
                           handleSearch();
@@ -308,65 +315,64 @@ export default function SummaryPage() {
             )}
             {notFound && (
               <div className="mb-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
-                <AlertCircle className="h-4 w-4 inline mr-2" />
+                <AlertCircle  className="h-4 w-4 inline mr-2" />
                 <span className="block sm:inline">Term not found. Please try a different search term.</span>
               </div>
             )}
           </CardContent>
         </Card>
         
-        <Card className="mb-6">
+        <Card className="mb-6 bg-white bg-opacity-80 backdrop-blur-sm shadow-xl">
           <CardHeader className="pb-2">
-            <CardTitle className="text-2xl font-bold text-orange-700">Owner</CardTitle>
+            <CardTitle className="text-2xl font-bold text-orange-800">Owner</CardTitle>
           </CardHeader>
           <CardContent>
             <OwnerCard owner={owner} viewingUserId={user.id} />
           </CardContent>
         </Card>
         
-        <Card>
-        <CardHeader>
-          <CardTitle className="text-2xl font-bold text-orange-600">Comments</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {comments.map(comment => (
-            <div key={comment.id} className="border border-orange-200 rounded-lg p-4">
-              <p className="text-orange-800 mb-2">{comment.content}</p>
-              <div className="flex items-center justify-between text-sm text-orange-600">
-                <div className="flex items-center space-x-2">
-                  <Avatar className="w-6 h-6">
-                    <AvatarImage src={`https://api.dicebear.com/6.x/initials/svg?seed=${comment.author}`} />
-                    <AvatarFallback>{comment.author[0]}</AvatarFallback>
-                  </Avatar>
-                  <span>{comment.author}</span>
+        <Card className="bg-white bg-opacity-80 backdrop-blur-sm shadow-xl">
+          <CardHeader>
+            <CardTitle className="text-2xl font-bold text-orange-800">Comments</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {comments.map(comment => (
+              <div key={comment.id} className="border border-orange-200 rounded-lg p-4 bg-white">
+                <p className="text-orange-700 mb-2">{comment.content}</p>
+                <div className="flex items-center justify-between text-sm text-orange-600">
+                  <div className="flex items-center space-x-2">
+                    <Avatar className="w-6 h-6">
+                      <AvatarImage src={`https://api.dicebear.com/6.x/initials/svg?seed=${comment.author}`} />
+                      <AvatarFallback>{comment.author[0]}</AvatarFallback>
+                    </Avatar>
+                    <span>{comment.author}</span>
+                  </div>
+                  <span>{new Date(comment.timestamp).toLocaleString()}</span>
                 </div>
-                <span>{new Date(comment.timestamp).toLocaleString()}</span>
               </div>
-            </div>
-          ))}
-        </CardContent>
-      </Card>
+            ))}
+          </CardContent>
+        </Card>
       </main>
 
       {isCommentDialogOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-          <Card className="w-full max-w-md">
+          <Card className="w-full max-w-md bg-white">
             <CardHeader>
-              <CardTitle>Add a Comment</CardTitle>
+              <CardTitle className="text-orange-800">Add a Comment</CardTitle>
             </CardHeader>
             <CardContent>
               <textarea
-                
                 placeholder="Type your comment here..."
                 value={newComment}
                 onChange={(e) => setNewComment(e.target.value)}
                 className="w-full h-32 border border-orange-300 rounded px-3 py-2 mb-4 focus:outline-none focus:ring-2 focus:ring-orange-500"
               />
               <div className="flex justify-end space-x-2">
-                <Button onClick={() => setIsCommentDialogOpen(false)} variant="outline">
+                <Button onClick={() => setIsCommentDialogOpen(false)} variant="outline" className="border-orange-300 text-orange-600 hover:bg-orange-100 transition-colors duration-200">
                   Cancel
                 </Button>
-                <Button onClick={handleAddComment} className="bg-orange-500 hover:bg-orange-600 text-white">
+                <Button onClick={handleAddComment} className="bg-orange-500 hover:bg-orange-600 text-white transition-colors duration-200">
                   <Send className="mr-2 h-4 w-4" /> Post Comment
                 </Button>
               </div>
@@ -377,9 +383,9 @@ export default function SummaryPage() {
 
       {isShareDialogOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-          <Card className="w-full max-w-md">
+          <Card className="w-full max-w-md bg-white">
             <CardHeader>
-              <CardTitle>Share this Summary</CardTitle>
+              <CardTitle className="text-orange-800">Share this Summary</CardTitle>
             </CardHeader>
             <CardContent>
               <Input
@@ -388,10 +394,10 @@ export default function SummaryPage() {
                 className="w-full border border-orange-300 rounded px-3 py-2 mb-4 focus:outline-none focus:ring-2 focus:ring-orange-500"
               />
               <div className="flex justify-end space-x-2">
-                <Button onClick={() => setIsShareDialogOpen(false)} variant="outline">
+                <Button onClick={() => setIsShareDialogOpen(false)} variant="outline" className="border-orange-300 text-orange-600 hover:bg-orange-100 transition-colors duration-200">
                   Cancel
                 </Button>
-                <Button onClick={handleShare} className="bg-orange-500 hover:bg-orange-600 text-white">
+                <Button onClick={handleShare} className="bg-orange-500 hover:bg-orange-600 text-white transition-colors duration-200">
                   <Share2 className="mr-2 h-4 w-4" /> Copy Link
                 </Button>
               </div>

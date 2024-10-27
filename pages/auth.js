@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { BookOpen, User, Mail, Lock } from "lucide-react"
+import { BookOpen, User, Mail, Lock, ClipboardList } from "lucide-react"
 import Link from 'next/link'
 import { createUser, verifyUser, isUsernameTaken } from '@/lib/db'
 import RandomLoadingComponent from '@/components/ui/Loading'
@@ -82,8 +82,8 @@ export default function Auth() {
   return (
     <div className="min-h-screen bg-orange-50 flex flex-col justify-center items-center p-4">
       <Link href="/" className="flex items-center space-x-2 mb-8">
-        <BookOpen className="h-8 w-8 text-orange-500" />
-        <span className="text-2xl font-bold text-orange-700">SummaryShare</span>
+        <ClipboardList className="h-8 w-8 text-orange-500" />
+        <span className="text-2xl font-bold text-orange-700">GetSum</span>
       </Link>
 
       <Card className="w-full max-w-md">
@@ -173,7 +173,7 @@ export default function Auth() {
       </Card>
 
       <p className="mt-8 text-center text-sm text-orange-600">
-        By {isLogin ? 'logging in' : 'signing up'}, you agree to SummaryShare's{' '}
+        By {isLogin ? 'logging in' : 'signing up'}, you agree to GetSum's{' '}
         <Link href="/terms" className="font-medium text-orange-600 hover:underline">
           Terms of Service
         </Link>{' '}

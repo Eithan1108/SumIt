@@ -2,13 +2,15 @@
 
 import React, { useState, useEffect, useCallback } from 'react'
 import { useParams, useSearchParams } from 'next/navigation'
+import { useRouter } from 'next/router'
 import Link from 'next/link'
 import { DragDropContext, Droppable, Draggable, DropResult } from 'react-beautiful-dnd'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { ArrowLeft, Save, Plus, Trash2, Folder, File, UserPlus, UserMinus } from "lucide-react"
+import Input from "@/components/ui/SeconInput"
+import { ArrowLeft, Save, Plus, Trash2, Folder, File, UserPlus } from "lucide-react"
 import Header from '@/components/Theme/Header'
 import Footer from "@/components/Theme/Footer"
 import { fetchRepositoryById, updateRepository, inviteCollaborator, removeCollaborator, cancelCollaborationInvitation } from '@/lib/db'
@@ -16,38 +18,10 @@ import { Repository, RepositoryItem, RepositoryFolder, User } from '../../../lib
 import { CollaboratorInvitation } from '@/components/Collaborator/CollaboratorInvitation'
 import { ToastProvider, useToast } from '@/components/ui/Toats'
 
-interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
-  label?: string;
-  error?: string;
-}
-
-function Input({ label, error, className = '', ...props }: InputProps) {
-  const inputId = React.useId()
-
-  return (
-    <div className="w-full">
-      {label && (
-        <label htmlFor={inputId} className="block text-sm font-medium text-gray-700 mb-1">
-          {label}
-        </label>
-      )}
-      <input
-        id={inputId}
-        className={`w-full px-3 py-2 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent ${
-          error ? 'border-red-500' : 'border-gray-300'
-        } ${className}`}
-        {...props}
-      />
-      {error && <p className="mt-1 text-xs text-red-500">{error}</p>}
-    </div>
-  )
-}
-
 function EditRepositoryPageContent() {
   const params = useParams()
+  const router = useRouter()
   const searchParams = useSearchParams()
-  const id = params?.id as string | undefined
-  const userId = searchParams?.get('userId')
   const [repo, setRepo] = useState<Repository | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -56,12 +30,28 @@ function EditRepositoryPageContent() {
   const [newFolderName, setNewFolderName] = useState<string>('')
   const [addingFolderTo, setAddingFolderTo] = useState<string | null>(null)
   const [collaboratorUsername, setCollaboratorUsername] = useState('')
+  const [filteredUsernames, setFilteredUsernames] = useState<string[]>([])
   const { addToast } = useToast()
+  const [user, setUser] = useState('')
+  
+
+  // Mock array of usernames (replace this with your actual data source)
+  const allUsernames = ['user1', 'user2', 'user3', 'admin1', 'admin2', 'moderator']
 
   useEffect(() => {
     const fetchData = async () => {
-      const id = params?.id as string
-      const userId = searchParams?.get('userId')
+      if (!router.isReady) return;
+      const { id, userId } = router.query;
+      if (typeof id !== 'string' || typeof userId !== 'string') {
+        setError('Invalid URL parameters');
+        setLoading(false);
+        return;
+      }
+
+      if(!userId)
+        setUser('0')
+      else
+        setUser(userId)
       if (!id || !userId) {
         setError('Invalid URL parameters')
         setLoading(false)
@@ -86,7 +76,7 @@ function EditRepositoryPageContent() {
     }
 
     fetchData()
-  }, [params, searchParams])
+  }, [router.isReady, router.query, params, searchParams])
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -106,13 +96,30 @@ function EditRepositoryPageContent() {
     try {
       await updateRepository(repo.id, repo);
       addToast('Repository updated successfully', 'success');
-      
     } catch (err) {
       console.error("Error updating repository:", err);
       addToast('Failed to update repository. Please try again.', 'error');
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleCollaboratorInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setCollaboratorUsername(value);
+    if (value.length > 0) {
+      const filtered = allUsernames.filter(username => 
+        username.toLowerCase().includes(value.toLowerCase())
+      );
+      setFilteredUsernames(filtered);
+    } else {
+      setFilteredUsernames([]);
+    }
+  };
+
+  const handleSelectCollaborator = (username: string) => {
+    setCollaboratorUsername(username);
+    setFilteredUsernames([]);
   };
 
   const handleInviteCollaborator = async () => {
@@ -313,7 +320,7 @@ function EditRepositoryPageContent() {
                 {!isAddingToThisFolder && (
                   <Button
                     onClick={() => handleAddFolder(folder.id)}
-                    className="ml-2 p-1 bg-white-500 hover:bg-white-100 text-orange-500 rounded-md"
+                    className="ml-2 p-1 bg-white hover:bg-orange-200 text-orange-500 rounded-md"
                   >
                     <Plus className="h-4 w-4" />
                   </Button>
@@ -327,7 +334,7 @@ function EditRepositoryPageContent() {
                     placeholder="New folder name"
                     className="flex-grow"
                   />
-                  <Button onClick={handleConfirmAddFolder} className="bg-orange-500 hover:bg-orange-600  text-white">
+                  <Button onClick={handleConfirmAddFolder} className="bg-orange-500 hover:bg-orange-600 text-white">
                     Add
                   </Button>
                   <Button onClick={handleCancelAddFolder} className="bg-gray-300 hover:bg-gray-400 text-gray-800">
@@ -349,11 +356,12 @@ function EditRepositoryPageContent() {
                             renderFolderStructure(item as RepositoryFolder, level + 1)
                           ) : (
                             <button 
-                              className="flex items-center py-2 w-full text-left hover:bg-orange-100" 
+                              className="flex items-center py-2 w-full text-left hover:bg-orange-100 transition-colors duration-200" 
                               style={{ marginLeft: `${(level + 1) * 20}px` }} 
                               onClick={(e) => {
                                 e.preventDefault();
                                 e.stopPropagation();
+                                
                                 handleSelectItem(item as RepositoryItem);
                               }}
                             >
@@ -364,7 +372,6 @@ function EditRepositoryPageContent() {
                         </div>
                       )}
                     </Draggable>
-                  
                   ))}
                 </div>
               )}
@@ -393,60 +400,83 @@ function EditRepositoryPageContent() {
       <Header onSearch={handleSearch} userId={repo.owner} />
 
       <main className="flex-grow container mx-auto px-4 py-8">
+        
         <Link
           href={`/repository/${repo.id}?userId=${repo.owner}`}
-          className="inline-flex items-center mb-4 text-orange-600 hover:text-orange-800"
+          className="inline-flex items-center mb-4 text-orange-600 hover:text-orange-800 transition-colors duration-200"
         >
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back to Repository
         </Link>
 
-        <Card className="mb-6">
+        <Card className="mb-6 bg-white bg-opacity-80 backdrop-blur-sm shadow-xl">
           <CardHeader>
-            <CardTitle className="text-2xl font-bold text-orange-600">Edit Repository: {repo.name}</CardTitle>
+            <CardTitle className="text-2xl font-bold text-orange-800">Edit Repository: {repo.name}</CardTitle>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <Label htmlFor="name">Repository Name</Label>
+                <Label htmlFor="name" className="text-orange-700">Repository Name</Label>
                 <Input
                   id="name"
                   name="name"
                   value={repo.name}
                   onChange={handleInputChange}
                   required
+                  className="border-orange-300 focus:border-orange-500 focus:ring-orange-500 bg-white"
                 />
               </div>
 
               <div>
-                <Label htmlFor="description">Description</Label>
+                <Label htmlFor="description" className="text-orange-700">Description</Label>
                 <Textarea
                   id="description"
                   name="description"
                   value={repo.description}
                   onChange={handleInputChange}
-                  className="border-orange-300 focus:border-orange-500 focus:ring-orange-500"
+                  className="border-orange-300 focus:border-orange-500 focus:ring-orange-500 bg-white"
                   rows={4}
                 />
               </div>
 
               <div>
-                <Label htmlFor="collaborator">Invite Collaborator</Label>
+                <Label htmlFor="collaborator" className="text-orange-700">Invite Collaborator</Label>
                 <div className="flex items-center space-x-2">
-                  <Input
-                    id="collaborator"
-                    value={collaboratorUsername}
-                    onChange={(e) => setCollaboratorUsername(e.target.value)}
-                    placeholder="Enter username"
-                  />
-                  <Button onClick={handleInviteCollaborator} type="button">
-                    <UserPlus className="mr-2 h-4 w-4" />
+                  <div className="relative flex-grow">
+                    <UserPlus className="absolute left-3 top-1/2 transform -translate-y-1/2 text-orange-400" />
+                    <Input
+                      id="collaborator"
+                      value={collaboratorUsername}
+                      onChange={handleCollaboratorInputChange}
+                      placeholder="Enter username"
+                      className="pl-10 border-orange-300 focus:border-orange-500 focus:ring-orange-500 bg-white"
+                    />
+                    {filteredUsernames.length > 0 && (
+                      <ul className="absolute z-10 w-full bg-white border border-orange-200 rounded-md mt-1 max-h-40 overflow-auto">
+                        {filteredUsernames.map((username) => (
+                          <li
+                            key={username}
+                            className="px-4 py-2 hover:bg-orange-100 cursor-pointer"
+                            onClick={() => handleSelectCollaborator(username)}
+                          >
+                            {username}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                  <Button 
+                    onClick={handleInviteCollaborator} 
+                    type="button"
+                    className="bg-orange-500 hover:bg-orange-600 text-white transition-colors duration-200"
+                  >
                     Invite
                   </Button>
                 </div>
               </div>
 
               <CollaboratorInvitation
+                userId={user}
                 collaborators={repo.collaborators}
                 pendingCollaborators={repo.pendingCollaborators}
                 onRemoveCollaborator={handleRemoveCollaborator}
@@ -454,18 +484,19 @@ function EditRepositoryPageContent() {
               />
 
               <div>
-                <Label htmlFor="tags">Tags (comma-separated)</Label>
+                <Label htmlFor="tags" className="text-orange-700">Tags (comma-separated)</Label>
                 <Input
                   id="tags"
                   name="tags"
                   value={repo.tags.join(', ')}
                   onChange={handleTagsChange}
+                  className="border-orange-300 focus:border-orange-500 focus:ring-orange-500 bg-white"
                 />
               </div>
 
               <div>
-                <Label>Folder Structure</Label>
-                <div className="border border-orange-200 rounded-md p-4">
+                <Label className="text-orange-700">Folder Structure</Label>
+                <div className="border border-orange-200 rounded-md p-4 bg-white">
                   <DragDropContext onDragEnd={onDragEnd}>
                     {renderFolderStructure(repo.rootFolder)}
                   </DragDropContext>
@@ -474,17 +505,15 @@ function EditRepositoryPageContent() {
 
               {selectedItem && (
                 <div>
-                  <Label>Selected Item</Label>
+                  <Label className="text-orange-700">Selected Item</Label>
                   <div className="flex items-center justify-between p-2 bg-orange-100 rounded-md">
-                    <span>{('title' in selectedItem ? selectedItem.title : selectedItem.name)}</span>
-                    <div>
-                      <Button
-                        onClick={() => handleDeleteItem(selectedItem.id)}
-                        className="bg-orange-500 hover:bg-red-600 text-white"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
+                    <span className="text-orange-800">{('title' in selectedItem ? selectedItem.title : selectedItem.name)}</span>
+                    <Button
+                      onClick={() => handleDeleteItem(selectedItem.id)}
+                      className="bg-red-500 hover:bg-red-600 text-white transition-colors duration-200"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
                   </div>
                 </div>
               )}

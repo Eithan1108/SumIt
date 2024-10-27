@@ -1,21 +1,20 @@
+'use client'
+
 import { useState, useEffect } from 'react'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { BookOpen, Brain, Sparkles, Share2, Zap, Target, Users, Rocket } from "lucide-react"
+import { BookOpen, Share2, Zap, Target, Users, Rocket } from "lucide-react"
 import Link from 'next/link'
-import Footer from "../components/Theme/Footer"
-import RandomLoadingComponent from "../components/ui/Loading"
-
+import Footer from "@/components/Theme/Footer"
+import RandomLoadingComponent from "@/components/ui/Loading"
 
 export default function Component() {
-
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    // Simulate content loading
     const timer = setTimeout(() => {
       setIsLoading(false)
-    }, 300) // Adjust this time as needed
+    }, 300)
 
     return () => clearTimeout(timer)
   }, [])
@@ -31,7 +30,7 @@ export default function Component() {
           <nav className="flex justify-between items-center">
             <Link href="/" className="flex items-center space-x-2">
               <BookOpen className="h-8 w-8 text-orange-500" />
-              <span className="text-2xl font-bold text-orange-700">SummaryShare</span>
+              <span className="text-2xl font-bold text-orange-700">GetSum</span>
             </Link>
             <div className="space-x-4">
               <Button variant="ghost" asChild>
@@ -48,40 +47,27 @@ export default function Component() {
       <main className="flex-grow container mx-auto px-4 py-16">
         <div className="text-center mb-24">
           <h1 className="text-5xl md:text-7xl font-bold text-orange-700 mb-6">
-            AI-Powered Knowledge Sharing
+            Revolutionize Your Knowledge Sharing
           </h1>
           <p className="text-xl md:text-2xl text-orange-600 mb-12 max-w-3xl mx-auto">
-            SummaryShare harnesses the power of advanced AI to revolutionize how you create, discover, and share concise summaries on any topic. Unlock a world of knowledge at your fingertips.
+          GetSum transforms how you create, discover, and share concise summaries on any topic. Unlock a world of knowledge at your fingertips.
           </p>
           <Button size="lg" className="bg-orange-500 hover:bg-orange-600 text-white text-lg py-6 px-8" asChild>
-            <Link href="/auth?mode=signup">Start Your AI Learning Journey</Link>
+            <Link href="/auth?mode=signup">Start Your Learning Journey</Link>
           </Button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-24">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-24">
           <Card className="bg-white">
             <CardHeader>
               <CardTitle className="flex items-center text-orange-700">
-                <Brain className="w-6 h-6 mr-2 text-orange-500" />
-                AI-Assisted Summaries
+                <BookOpen className="w-6 h-6 mr-2 text-orange-500" />
+                Concise Summaries
               </CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-orange-600">
-                Our cutting-edge AI helps you create clear, concise summaries from complex topics in seconds. Say goodbye to information overload and hello to efficient learning.
-              </p>
-            </CardContent>
-          </Card>
-          <Card className="bg-white">
-            <CardHeader>
-              <CardTitle className="flex items-center text-orange-700">
-                <Sparkles className="w-6 h-6 mr-2 text-orange-500" />
-                Smart Recommendations
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-orange-600">
-                Discover relevant summaries tailored to your interests using our AI-powered recommendation system. Expand your knowledge horizons effortlessly.
+                Create clear, concise summaries from complex topics in minutes. Say goodbye to information overload and hello to efficient learning.
               </p>
             </CardContent>
           </Card>
@@ -107,7 +93,7 @@ export default function Component() {
             </CardHeader>
             <CardContent>
               <p className="text-orange-600">
-                Our AI adapts to your learning style, helping you retain information more effectively. Experience personalized learning paths that evolve with your progress.
+                Experience personalized learning paths that evolve with your progress. Adapt your learning style and retain information more effectively.
               </p>
             </CardContent>
           </Card>
@@ -118,7 +104,7 @@ export default function Component() {
             Revolutionize Your Learning Experience
           </h2>
           <p className="text-xl text-orange-600 mb-12 max-w-3xl mx-auto">
-            SummaryShare is not just another learning platform. It's a game-changer in the world of knowledge acquisition and sharing. Here's why you'll love it:
+          GetSum is not just another learning platform. It's a game-changer in the world of knowledge acquisition and sharing. Here's why you'll love it:
           </p>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <Card className="bg-white">
@@ -130,7 +116,7 @@ export default function Component() {
               </CardHeader>
               <CardContent>
                 <p className="text-orange-600">
-                  Our AI algorithms identify and present the most crucial information, ensuring you grasp key concepts quickly and effectively.
+                  Our platform helps you identify and focus on the most crucial information, ensuring you grasp key concepts quickly and effectively.
                 </p>
               </CardContent>
             </Card>
@@ -156,7 +142,7 @@ export default function Component() {
               </CardHeader>
               <CardContent>
                 <p className="text-orange-600">
-                  With AI-optimized learning paths, you'll achieve your learning goals faster than ever before. Watch your knowledge expand exponentially.
+                  With optimized learning paths, you'll achieve your learning goals faster than ever before. Watch your knowledge expand exponentially.
                 </p>
               </CardContent>
             </Card>
@@ -169,7 +155,7 @@ export default function Component() {
               </CardHeader>
               <CardContent>
                 <p className="text-orange-600">
-                  From science and technology to arts and humanities, SummaryShare covers a vast array of subjects. Your next discovery is just a click away.
+                  From science and technology to arts and humanities, GetSum covers a vast array of subjects. Your next discovery is just a click away.
                 </p>
               </CardContent>
             </Card>
@@ -188,7 +174,7 @@ export default function Component() {
               </CardHeader>
               <CardContent>
                 <p className="text-orange-600">
-                  Create your account in seconds. Our AI immediately starts personalizing your experience based on your interests and goals.
+                  Create your account in seconds. We immediately start personalizing your experience based on your interests and goals.
                 </p>
               </CardContent>
             </Card>
@@ -201,7 +187,7 @@ export default function Component() {
               </CardHeader>
               <CardContent>
                 <p className="text-orange-600">
-                  Dive into our vast library of AI-curated summaries or flex your knowledge by creating your own with our AI writing assistant.
+                  Dive into our vast library of curated summaries or flex your knowledge by creating your own with our writing tools.
                 </p>
               </CardContent>
             </Card>
@@ -214,7 +200,7 @@ export default function Component() {
               </CardHeader>
               <CardContent>
                 <p className="text-orange-600">
-                  Engage with the community, challenge your understanding, and watch as our AI tracks your progress and suggests new exciting topics to explore.
+                  Engage with the community, challenge your understanding, and track your progress as you explore new exciting topics.
                 </p>
               </CardContent>
             </Card>
@@ -226,7 +212,7 @@ export default function Component() {
             Ready to experience the future of learning?
           </h2>
           <p className="text-xl text-orange-600 mb-12 max-w-3xl mx-auto">
-            Join SummaryShare today and unlock the full potential of your learning journey. Harness the power of AI to supercharge your knowledge acquisition and sharing.
+            Join GetSum today and unlock the full potential of your learning journey. Supercharge your knowledge acquisition and sharing.
           </p>
           <Button size="lg" className="bg-orange-500 hover:bg-orange-600 text-white text-lg py-6 px-8" asChild>
             <Link href="/signup">Get Started Now - It's Free!</Link>
@@ -237,19 +223,19 @@ export default function Component() {
           <h2 className="text-3xl font-bold text-orange-700 mb-6 text-center">Frequently Asked Questions</h2>
           <div className="space-y-6">
             <div>
-              <h3 className="text-xl font-semibold text-orange-600 mb-2">Is SummaryShare really free?</h3>
-              <p className="text-orange-700">Yes! We offer a robust free tier that gives you access to most features. We also have premium plans for power users who want even more AI-powered capabilities.</p>
+              <h3 className="text-xl font-semibold text-orange-600 mb-2">Is GetSum really free?</h3>
+              <p className="text-orange-700">Yes! We offer a robust free tier that gives you access to most features. We also have premium plans for power users who want even more capabilities.</p>
             </div>
             <div>
-              <h3 className="text-xl font-semibold text-orange-600 mb-2">How accurate are the AI-generated summaries?</h3>
-              <p className="text-orange-700">Our AI is highly accurate and constantly improving. However, we always encourage users to think critically and verify important information from primary sources.</p>
+              <h3 className="text-xl font-semibold text-orange-600 mb-2">How accurate are the summaries?</h3>
+              <p className="text-orange-700">Our summaries are created by users and reviewed by our community. However, we always encourage users to think critically and verify important information from primary sources.</p>
             </div>
             <div>
-              <h3 className="text-xl font-semibold text-orange-600 mb-2">Can I use SummaryShare for academic purposes?</h3>
-              <p className="text-orange-700">Many students and researchers use SummaryShare to complement their studies. Just remember to cite appropriately if you're using summaries in your work.</p>
+              <h3 className="text-xl font-semibold text-orange-600 mb-2">Can I use GetSum for academic purposes?</h3>
+              <p className="text-orange-700">Many students and researchers use GetSum to complement their studies. Just remember to cite appropriately if you're using summaries in your work.</p>
             </div>
             <div>
-              <h3 className="text-xl font-semibold text-orange-600 mb-2">How does SummaryShare protect my privacy?</h3>
+              <h3 className="text-xl font-semibold text-orange-600 mb-2">How does GetSum protect my privacy?</h3>
               <p className="text-orange-700">We take privacy seriously. Your personal information is encrypted, and we never share your data with third parties. You can learn more in our Privacy Policy.</p>
             </div>
           </div>

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import Link from "next/link";
+import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import Input from "@/components/ui/SeconInput"
 import { RepositoryCard } from "@/components/Cards/RepositoryCard"
@@ -10,7 +10,7 @@ import Header from "@/components/Theme/Header"
 import Footer from "@/components/Theme/Footer"
 import { fetchRepositories, fetchUserById } from '@/lib/db'
 import { Repository, User } from '@/lib/types'
-import { Search, ChevronLeft, ChevronRight, Grid, List, Tag, Filter, ArrowLeft, X } from 'lucide-react'
+import { Search, ChevronLeft, ChevronRight, Grid, List, Tag, Filter, ArrowLeft, X, Lock } from 'lucide-react'
 import {
   Select,
   SelectContent,
@@ -25,7 +25,6 @@ import {
 } from "@/components/ui/popover"
 import RandomLoadingComponent from '@/components/ui/Loading'
 
-
 export default function AllRepositoriesPage() {
   const [repositories, setRepositories] = useState<Repository[]>([])
   const [filteredRepositories, setFilteredRepositories] = useState<Repository[]>([])
@@ -37,6 +36,7 @@ export default function AllRepositoriesPage() {
   const [selectedTags, setSelectedTags] = useState<string[]>([])
   const [sortBy, setSortBy] = useState<'popular' | 'default'>('default')
   const [hasMore, setHasMore] = useState(true)
+  const [showPrivate, setShowPrivate] = useState(false)
   const router = useRouter()
   const searchParams = useSearchParams()
   const repositoriesPerPage = 12
@@ -69,7 +69,8 @@ export default function AllRepositoriesPage() {
       (repo.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       repo.author.toLowerCase().includes(searchTerm.toLowerCase()) ||
       repo.owner.toLowerCase().includes(searchTerm.toLowerCase())) &&
-      (selectedTags.length === 0 || selectedTags.some(tag => repo.tags.includes(tag)))
+      (selectedTags.length === 0 || selectedTags.some(tag => repo.tags.includes(tag))) &&
+      (!repo.isPrivate || showPrivate || repo.owner === user?.id || (repo.collaborators && repo.collaborators.includes(user?.id || '')))
     )
 
     if (sortBy === 'popular') {
@@ -79,7 +80,7 @@ export default function AllRepositoriesPage() {
     setFilteredRepositories(results)
     setCurrentPage(1)
     setHasMore(results.length > repositoriesPerPage)
-  }, [searchTerm, repositories, selectedTags, sortBy])
+  }, [searchTerm, repositories, selectedTags, sortBy, showPrivate, user])
 
   const loadMoreRepositories = useCallback(() => {
     if (!hasMore) return
@@ -117,6 +118,7 @@ export default function AllRepositoriesPage() {
     setSearchTerm('')
     setSelectedTags([])
     setSortBy('default')
+    setShowPrivate(false)
   }
 
   const allTags = Array.from(new Set(repositories.flatMap(repo => repo.tags)))
@@ -126,22 +128,21 @@ export default function AllRepositoriesPage() {
       <Header onSearch={handleSearch} userId={user?.id} />
 
       <main className="container mx-auto px-4 py-8">
-      <Link
-              href={`/dashboard?userId=${user?.id || ''}`}
-              className="inline-flex items-center text-orange-600 hover:text-orange-800 transition-colors duration-200"
-            >
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Back to Dashboard
+        <Link
+          href={`/dashboard?userId=${user?.id || ''}`}
+          className="mb-4 inline-flex items-center text-orange-600 hover:text-orange-800 transition-colors duration-200"
+        >
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Back to Dashboard
         </Link>
         <div className="flex justify-between items-center mb-6">
-
-          <h1 className="text-3xl font-bold text-orange-700">All Repositories</h1>
+          <h1 className="text-3xl font-bold text-orange-800">All Repositories</h1>
           <div className="flex items-center space-x-2">
             <Button
               variant="outline"
               size="sm"
               onClick={() => setViewMode('grid')}
-              className={viewMode === 'grid' ? 'bg-orange-200' : ''}
+              className={`border-orange-300 text-orange-600 hover:bg-orange-100 ${viewMode === 'grid' ? 'bg-orange-200' : ''}`}
             >
               <Grid className="h-4 w-4" />
             </Button>
@@ -149,7 +150,7 @@ export default function AllRepositoriesPage() {
               variant="outline"
               size="sm"
               onClick={() => setViewMode('list')}
-              className={viewMode === 'list' ? 'bg-orange-200' : ''}
+              className={`border-orange-300 text-orange-600 hover:bg-orange-100 ${viewMode === 'list' ? 'bg-orange-200' : ''}`}
             >
               <List className="h-4 w-4" />
             </Button>
@@ -167,7 +168,7 @@ export default function AllRepositoriesPage() {
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-orange-400" />
           </div>
           <Select value={sortBy} onValueChange={(value: 'popular' | 'default') => setSortBy(value)}>
-            <SelectTrigger className="w-[180px]">
+            <SelectTrigger className="w-[180px] border-orange-300 text-orange-600">
               <SelectValue placeholder="Sort by" />
             </SelectTrigger>
             <SelectContent>
@@ -177,14 +178,14 @@ export default function AllRepositoriesPage() {
           </Select>
           <Popover>
             <PopoverTrigger asChild>
-              <Button variant="outline" className="ml-auto">
+              <Button variant="outline" className="ml-auto border-orange-300 text-orange-600 hover:bg-orange-100">
                 <Filter className="mr-2 h-4 w-4" /> Filter
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-80">
+            <PopoverContent className="w-80 bg-white bg-opacity-80 backdrop-blur-sm">
               <div className="grid gap-4">
                 <div className="space-y-2">
-                  <h4 className="font-medium leading-none">Tags</h4>
+                  <h4 className="font-medium leading-none text-orange-800">Tags</h4>
                   <div className="flex flex-wrap gap-2">
                     {allTags.map(tag => (
                       <Button
@@ -192,7 +193,7 @@ export default function AllRepositoriesPage() {
                         variant="outline"
                         size="sm"
                         onClick={() => toggleTag(tag)}
-                        className={selectedTags.includes(tag) ? 'bg-orange-200' : ''}
+                        className={`border-orange-300 text-orange-600 hover:bg-orange-100 ${selectedTags.includes(tag) ? 'bg-orange-200' : ''}`}
                       >
                         <Tag className="h-4 w-4 mr-2" />
                         {tag}
@@ -200,28 +201,31 @@ export default function AllRepositoriesPage() {
                     ))}
                   </div>
                 </div>
+                <div className="space-y-2">
+                  <h4 className="font-medium leading-none text-orange-800">Visibility</h4>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowPrivate(!showPrivate)}
+                    className={`border-orange-300 text-orange-600 hover:bg-orange-100 ${showPrivate ? 'bg-orange-200' : ''}`}
+                  >
+                    <Lock className="h-4 w-4 mr-2" />
+                    {showPrivate ? 'Hide Private' : 'Show Private'}
+                  </Button>
+                </div>
               </div>
             </PopoverContent>
           </Popover>
-          <Button variant="outline" onClick={clearFilters}>
+          <Button variant="outline" onClick={clearFilters} className="border-orange-300 text-orange-600 hover:bg-orange-100">
             <X className="h-4 w-4 mr-2" /> Clear Filters
           </Button>
         </div>
         {isLoading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {Array.from({ length: 6 }).map((_, index) => (
-              <div key={index} className="bg-white rounded-lg shadow-md p-4 animate-pulse">
-                <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
-                <div className="h-4 bg-gray-200 rounded w-1/2 mb-4"></div>
-                <div className="h-20 bg-gray-200 rounded mb-4"></div>
-                <div className="h-4 bg-gray-200 rounded w-1/4"></div>
-              </div>
-            ))}
-          </div>
+          <RandomLoadingComponent />
         ) : (
           <>
             {currentRepositories.length === 0 ? (
-              <div className="text-center text-gray-500 mt-8">
+              <div className="text-center text-orange-600 mt-8">
                 No repositories found. Try adjusting your filters or search term.
               </div>
             ) : (
@@ -234,7 +238,7 @@ export default function AllRepositoriesPage() {
                     <RepositoryCard
                       repo={repo}
                       onClick={() => navigateToRepository(repo)}
-                    />
+                      />
                   </div>
                 ))}
               </div>

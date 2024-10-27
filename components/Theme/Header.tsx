@@ -4,7 +4,8 @@ import Link from 'next/link'
 import { useState, useEffect, ChangeEvent, FormEvent } from 'react'
 import { Button } from "@/components/ui/button"
 import { Input as BaseInput } from "@/components/ui/input"
-import { BookOpen, Search, Bell, User } from "lucide-react"
+import { Lightbulb, Bell, User, ClipboardList } from "lucide-react"
+
 import { fetchUserById, fetchNotifications } from "@/lib/db"
 
 interface HeaderProps {
@@ -62,22 +63,11 @@ export default function Header({ onSearch, userId}: HeaderProps) {
     <header className="bg-white shadow-sm">
       <div className="container mx-auto px-4 py-4">
         <div className="flex justify-between items-center">
-          <Link href="/dashboard" className="flex items-center space-x-2">
-            <BookOpen className="h-8 w-8 text-orange-500" />
-            <span className="text-2xl font-bold text-orange-700">SumIt</span>
+          <Link href={`/dashboard${userId ? `?userId=${userId}` : ''}`} className="flex items-center space-x-2">
+            <ClipboardList className="h-8 w-8 text-orange-500" />
+            <span className="text-2xl font-bold text-orange-700">GetSum</span>
           </Link>
-          <form onSubmit={handleSearch} className="flex-1 max-w-md mx-4">
-            <div className="relative">
-              <Search className="absolute left-2 top-2.5 h-4 w-4 text-orange-400" />
-              <Input
-                type="search"
-                placeholder="Search summaries..."
-                value={searchTerm}
-                onChange={handleSearchChange}
-                className="pl-8 pr-4 py-2 w-full"
-              />
-            </div>
-          </form>
+
           <nav className="flex items-center space-x-4">
             <Link href={`/notification/${userId}`}>
               <Button variant="ghost" size="icon" className="relative">

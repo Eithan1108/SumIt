@@ -11,6 +11,8 @@ interface OwnerCardProps {
 }
 
 export default function FullWidthOwnerCard({ owner, viewingUserId }: OwnerCardProps) {
+  const isOwnProfile = owner.id === viewingUserId
+
   return (
     <Card className="w-full mb-6">
       <CardContent className="p-6">
@@ -38,9 +40,12 @@ export default function FullWidthOwnerCard({ owner, viewingUserId }: OwnerCardPr
               <StatItem icon={Users} value={owner.followers} label="Followers" />
             </div>
             <div className="w-full h-px bg-border md:hidden" />
-            <Link href={`/view_user_profile/${owner.username}?viewerId=${viewingUserId}`} className="w-full md:w-auto">
-              <Button variant="outline" size="sm" className="w-full md:w-auto whitespace-nowrap bg-orange-500 hover:bg-orange-600 text-white">
-                View Full Profile
+            <Link 
+              href={isOwnProfile ? `/profile?userId=${viewingUserId}` : `/view_user_profile/${owner.username}?viewerId=${viewingUserId}`} 
+              className="w-full md:w-auto"
+            >
+              <Button variant="outline" size="sm" className="w-full md:w-auto whitespace-nowrap bg-orange-500 hover:bg-orange-600 hover:text-white text-white">
+                {'View Full Profile'}
                 <ExternalLink className="ml-2 h-4 w-4" />
               </Button>
             </Link>

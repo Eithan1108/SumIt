@@ -87,6 +87,7 @@ export interface Repository {
   description: string
   author: string
   owner: string
+  isPrivate: boolean
   stars: number
   likes: number
   views: number
@@ -94,6 +95,7 @@ export interface Repository {
   rootFolder: RepositoryFolder
   collaborators: string[] // Array of user IDs
   pendingCollaborators: string[] // Array of invited user IDs
+  
   
 }
 
@@ -115,6 +117,7 @@ export interface RepositoryItem {
   comments: number
   path: string[]
   owner?: string
+  isPrivate?: boolean
 }
 
 // API Response types
