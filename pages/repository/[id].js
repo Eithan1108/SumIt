@@ -15,6 +15,8 @@ import Footer from "@/components/Theme/Footer"
 import { SummaryCard } from "@/components/Cards/SummaryCard"
 import { fetchRepositoryById, fetchUserById, likeRepository, saveRepository, viewRepository } from '@/lib/db'
 import OwnerCard from '@/components/Cards/OwnerCard'
+import UnauthorizedAccess from '@/components/Theme/UnauthorizedAccess'
+
 
 function FolderStructure({ folder, onSelectSummary, level = 0, userPermissions }) {
   const [isOpen, setIsOpen] = useState(level === 0)
@@ -220,8 +222,16 @@ export default function RepositoryPage() {
     return <div className="container mx-auto p-4 bg-orange-50">Error: {error}</div>
   }
 
-  if (!repo || (repo.isPrivate && !userPermissions.canViewPrivate)) {
-    return <div className="container mx-auto p-4 bg-orange-50">Repository not found or you don't have access to it.</div>
+  if (!repo) {
+    return <div className="container mx-auto p-4 bg-orange-50">Repository not found.</div>
+  }
+
+  if((repo.isPrivate && !userPermissions.canViewPrivate)) {
+    return (
+      <UnauthorizedAccess 
+        redirectPath={`/dashboard?userId=${user?.id}`}
+      />
+    )
   }
 
   const summaries = filteredSummaries()

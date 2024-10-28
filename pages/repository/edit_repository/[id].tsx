@@ -17,6 +17,7 @@ import { fetchRepositoryById, updateRepository, inviteCollaborator, removeCollab
 import { Repository, RepositoryItem, RepositoryFolder, User } from '../../../lib/types'
 import { CollaboratorInvitation } from '@/components/Collaborator/CollaboratorInvitation'
 import { ToastProvider, useToast } from '@/components/ui/Toats'
+import UnauthorizedAccess from '@/components/Theme/UnauthorizedAccess'
 
 function EditRepositoryPageContent() {
   const params = useParams()
@@ -292,6 +293,9 @@ function EditRepositoryPageContent() {
     });
   };
 
+
+  
+
   const renderFolderStructure = useCallback((folder: RepositoryFolder, level = 0) => {
     const isOpen = openFolders.has(folder.id);
     const isAddingToThisFolder = addingFolderTo === folder.id;
@@ -394,6 +398,17 @@ function EditRepositoryPageContent() {
   if (!repo) {
     return <div className="container mx-auto p-4 bg-orange-50">Repository not found</div>
   }
+
+  if(user !== repo.owner && !repo.collaborators.includes(user)) { 
+    return (
+      <UnauthorizedAccess 
+        redirectPath={`/dashboard?userId=${user}`}
+      />
+    )
+  }
+
+
+  
 
   return (
     <div className="min-h-screen flex flex-col bg-orange-50">

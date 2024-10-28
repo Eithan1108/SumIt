@@ -13,6 +13,7 @@ import Header from "../../components/Theme/Header"
 import Footer from "../../components/Theme/Footer"
 import OwnerCard from '@/components/Cards/OwnerCard'
 import { fetchSummaryById, fetchUserById, addCommentToSummary, likeSummary, saveSummary, viewSummary, fetchCommentsByIds } from "@/lib/db"
+import UnauthorizedAccess from '@/components/Theme/UnauthorizedAccess'
 
 export default function SummaryPage() {
   const router = useRouter()
@@ -208,6 +209,14 @@ export default function SummaryPage() {
 
   if (!summary || !user || !owner) {
     return <div className="flex justify-center items-center h-screen">Summary, user, or owner not found</div>
+  }
+
+  if(!summary || (summary.isPrivate && user.id !== summary.owner)) {
+    return (
+<UnauthorizedAccess 
+        redirectPath={`/dashboard?userId=${user?.id}`}
+      />
+    )
   }
 
   return (

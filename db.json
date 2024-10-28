@@ -3,14 +3,14 @@
     {
       "name": "Jane Doe",
       "username": "janedoe",
-      "password": "$2a$10$tMg3Wqyo37xC3iWeB.6IqedamSUYIovY4IOUov1KgbfcLTNqRf40i",
+      "password": "$2a$10$g2Fsu8708VA1qQnSuXwgJeXz68m3mUgCxVERRUq/dC9h1aciaQdnq",
       "avatar": "/placeholder.svg?height=100&width=100",
       "bio": "Passionate about summarizing complex topics and sharing knowledge.",
       "followers": 1236,
       "following": 569,
       "summariesCount": 46,
       "totalLikes": 14221,
-      "totalViews": 501243,
+      "totalViews": 501245,
       "rate": 4.8,
       "status": "new",
       "id": "e819",
@@ -164,7 +164,7 @@
       "following": 18,
       "summariesCount": 51,
       "totalLikes": 10071,
-      "totalViews": 119101,
+      "totalViews": 119117,
       "rate": 4.8,
       "status": "new",
       "id": "1371",
@@ -367,7 +367,7 @@
       "title": "Introduction to Machine Learning",
       "description": "This summary gives an overview of the foundational concepts in machine learning, covering algorithms, model training, and real-world use cases.",
       "content": "Machine Learning is a subset of artificial intelligence that enables systems to learn from data and improve performance without being explicitly programmed. This summary covers essential topics like supervised and unsupervised learning, neural networks, and popular algorithms such as decision trees and k-nearest neighbors.",
-      "views": 1604,
+      "views": 1606,
       "likes": 21,
       "comments": [],
       "dateCreated": "2023-07-19",
@@ -1609,6 +1609,27 @@
       "comments": [],
       "dateCreated": "2024-10-27",
       "lastUpdated": "2024-10-27"
+    },
+    {
+      "id": "1730120729547",
+      "title": "private",
+      "description": "private",
+      "content": "private",
+      "author": "Eitan Klein",
+      "owner": "1371",
+      "tags": [
+        "private"
+      ],
+      "isPrivate": true,
+      "neuronGraph": {},
+      "path": [
+        "Root"
+      ],
+      "views": 11,
+      "likes": 0,
+      "comments": [],
+      "dateCreated": "2024-10-28",
+      "lastUpdated": "2024-10-28"
     }
   ],
   "repositories": [
@@ -1727,7 +1748,7 @@
       "owner": "1371",
       "stars": 145,
       "likes": 101,
-      "views": 421,
+      "views": 425,
       "collaborators": [
         "e819"
       ],
@@ -2703,7 +2724,7 @@
         ],
         "path": []
       },
-      "views": 75,
+      "views": 76,
       "likes": 0,
       "collaborators": [],
       "pendingCollaborators": []
