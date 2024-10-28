@@ -16,7 +16,7 @@ import { SummaryCard } from "@/components/Cards/SummaryCard"
 import { CommunityCard } from "@/components/Cards/CommunityCard"
 import { RepositoryCard } from "@/components/Cards/RepositoryCard"
 import UserStats from "@/components/Theme/UserStats"
-import OnboardingTour from "@/pages/OnboardingTour"
+import OnboardingTour from "../components/Theme/OnboardingTour"
 import {
   fetchUserById,
   fetchSummaries,

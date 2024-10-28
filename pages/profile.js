@@ -39,7 +39,7 @@ import Footer from "@/components/Theme/Footer"
 import { SummaryCard } from "@/components/Cards/SummaryCard"
 import { CommunityCard } from "@/components/Cards/CommunityCard"
 import { RepositoryCard } from "@/components/Cards/RepositoryCard"
-import  EditProfileModal  from "./EditProfile"
+import  EditProfileModal  from "../components/ui/EditProfile"
 import {
   fetchUserById,
   fetchSummariesByOwnerId,
