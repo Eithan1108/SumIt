@@ -13,7 +13,7 @@ interface EditProfileModalProps {
   onSave: (updatedUser: User) => void
 }
 
-export function EditProfileModal({ user, isOpen, onClose, onSave }: EditProfileModalProps) {
+export default function EditProfileModal({ user, isOpen, onClose, onSave }: EditProfileModalProps) {
   const [name, setName] = useState(user.name)
   const [username, setUsername] = useState(user.username)
   const [bio, setBio] = useState(user.bio)

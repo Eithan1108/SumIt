@@ -164,7 +164,7 @@
       "following": 18,
       "summariesCount": 51,
       "totalLikes": 10071,
-      "totalViews": 119117,
+      "totalViews": 119119,
       "rate": 4.8,
       "status": "new",
       "id": "1371",
@@ -1742,13 +1742,13 @@
     },
     {
       "id": "2",
-      "name": "Machine Learning Resourc",
+      "name": "Machine Learning Resource",
       "description": "A curated collection of machine learning notes, tutorials, and research paper",
       "author": "Dr. Alan Walker",
       "owner": "1371",
       "stars": 145,
       "likes": 101,
-      "views": 425,
+      "views": 427,
       "collaborators": [
         "e819"
       ],
