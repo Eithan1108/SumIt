@@ -2,7 +2,7 @@
 
 import React, { useState } from "react"
 import { updateUserWithCascade } from "@/lib/db"
-import { User } from '../lib/types'
+import { User } from '../../lib/types'
 
 
 
